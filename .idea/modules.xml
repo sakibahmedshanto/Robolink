@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Robolink.iml" filepath="$PROJECT_DIR$/.idea/Robolink.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/robolink.iml" filepath="$PROJECT_DIR$/.idea/robolink.iml" />
     </modules>
   </component>
 </project>
