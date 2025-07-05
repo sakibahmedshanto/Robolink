@@ -6,6 +6,7 @@ import com.facebook.react.bridge.WritableMap
 import android.view.KeyEvent
 import android.view.InputDevice
 import android.view.MotionEvent
+import android.os.Bundle;
 
 import com.robolink.globalkeyevent.GlobalKeyEventModule
 
@@ -16,6 +17,10 @@ class MainActivity : ReactActivity() {
      */
     override fun getMainComponentName(): String {
         return "robolink"
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(null)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -38,38 +43,4 @@ class MainActivity : ReactActivity() {
         instance?.onMotionEvent(event)
         return true
     }
-
-    // override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-    //     val source = event.source
-
-    //     if ((source and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
-    //         (source and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK ||
-    //         (source and InputDevice.SOURCE_DPAD) == InputDevice.SOURCE_DPAD) {
-
-    //         val module = GlobalKeyEventModule.getInstance()
-
-    //         when (event.action) {
-    //             KeyEvent.ACTION_DOWN -> module?.onKeyDownEvent(event.keyCode, event)
-    //             KeyEvent.ACTION_UP -> module?.onKeyUpEvent(event.keyCode, event)
-    //         }
-
-    //         // Consume the event so system doesn't react
-    //         return true
-    //     }
-
-    //     return super.dispatchKeyEvent(event)
-    // }
-    
-    // override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
-    //     val source = event.source
-
-    //     if ((source and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK &&
-    //         event.action == MotionEvent.ACTION_MOVE) {
-
-    //         // TODO: Handle joystick analog movement if needed
-    //         return true // Consume to block default behavior
-    //     }
-
-    //     return super.dispatchGenericMotionEvent(event)
-    // }
 }
