@@ -9,7 +9,9 @@ import com.facebook.react.ReactNativeHost
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.ReactPackage
-import com.robolink.globalkeyevent.GlobalKeyEventPackage;
+
+import com.robolink.globalkeyevent.GlobalKeyEventPackage
+import com.robolink.bluetoothserial.BluetoothSerialPackage;
 
 
 class MainApplication : Application(), ReactApplication {
@@ -20,6 +22,7 @@ class MainApplication : Application(), ReactApplication {
               PackageList(this).packages.apply {
               // Packages that cannot be autolinked yet can be added manually here
                   add(GlobalKeyEventPackage())
+                  add(BluetoothSerialPackage())
               }
 
 
