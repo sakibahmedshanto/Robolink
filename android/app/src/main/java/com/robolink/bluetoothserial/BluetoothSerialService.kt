@@ -206,12 +206,12 @@ internal class BluetoothSerialService(private val mModule: BluetoothSerialModule
         override fun run() {
             if (D) Log.d(TAG, "BEGIN mConnectThread")
             name = "ConnectThread"
-
-            // Always cancel discovery because it will slow down a connection
-            mAdapter?.cancelDiscovery()
-
+            
             // Make a connection to the BluetoothSocket
             try {
+                // Always cancel discovery because it will slow down a connection
+                mAdapter?.cancelDiscovery()
+
                 // This is a blocking call and will only return on a successful connection or an exception
                 if (D) Log.d(TAG, "Connecting to socket...")
                 mmSocket?.connect()

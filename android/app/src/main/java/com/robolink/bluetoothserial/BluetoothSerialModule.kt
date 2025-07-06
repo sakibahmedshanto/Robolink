@@ -156,10 +156,16 @@ class BluetoothSerialModule(reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun disable(promise: Promise) {
+        Log.e(TAG, "Bluetooth adapter disabling")
+        if (mBluetoothAdapter == null) Log.e(TAG, "Bluetooth adapter is null")
         if (mBluetoothAdapter?.isEnabled == true) {
-            mBluetoothAdapter?.disable()
+            Log.d(TAG, "previouslyEnabled")
+            val result = mBluetoothAdapter?.disable()
+            promise.resolve(result)
+        } else {
+            Log.d(TAG, "previouslyDisabled")
+            promise.resolve(false)
         }
-        promise.resolve(true)
     }
 
     @ReactMethod

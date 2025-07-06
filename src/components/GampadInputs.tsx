@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useState, useEffect, use, useRef } from 'react';
+import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
-import { GlobalKeyEvent } from '../specs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BluetoothSerial, GlobalKeyEvent } from '../specs';
 import { JoystickKeyMap } from '../const/JoystickKeyMap';
-import { useDTS } from '../atoms/configs';
+import { useBluetoothStatus, useDTS } from '../atoms/configs';
+import MyButton from './Button';
 
 const styles = StyleSheet.create({
   container: {
@@ -48,8 +50,41 @@ const styles = StyleSheet.create({
 });
 
 export default function GamepadViewer() {
+  const [showSaveBtn, setShowSaveBtn] = useState(false);
   const [inputs, setInputs] = useState<{ [key: string]: any }>({});
   const [dts, setDTS] = useDTS();
+  const [bluetoothStatus, _] = useBluetoothStatus();
+  const inputsRef = useRef(inputs);
+  const dtsRef = useRef(dts);
+
+  useEffect(() => {
+    inputsRef.current = inputs;
+  }, [inputs]);
+
+  useEffect(() => {
+    dtsRef.current = dts;
+  }, [dts]);
+
+  useEffect(() => {
+    if(!bluetoothStatus.isConnected) return;
+    const ms = setInterval(() => {
+      const inputs = inputsRef.current;
+      const dts = dtsRef.current;
+
+      let result = `<${Object.keys(dts).length} `;
+      for (const [Key, val] of Object.entries(dts)) {
+        result += `${inputs[Key] || 0} `;
+      }
+      result += '>';
+      console.log('Sending:', result); // Debug log
+      BluetoothSerial.writeToDevice(btoa(result))
+    }, 100);
+
+    return () => {
+      if (ms) clearInterval(ms);
+    }
+  },[bluetoothStatus.isConnected, bluetoothStatus.enableSendOverBT]);
+
 
   useEffect(() => {
     const initialInputs = {
@@ -57,7 +92,18 @@ export default function GamepadViewer() {
     };
     console.log('GamepadViewer initialInputs', initialInputs);
     setDTS(initialInputs);
+
+    AsyncStorage.getItem('dts')
+      .then((data) => {
+        if (data) {
+          const parsedData = JSON.parse(data);
+          setDTS(parsedData);
+          setInputs(prev => ({ ...prev, ...parsedData }));
+        } else setDTS(initialInputs);
+        
+      });
   }, []);
+
 
   useEffect(() => {
     const subs = [
@@ -69,6 +115,13 @@ export default function GamepadViewer() {
     return () => subs.forEach(sub => sub.remove());
   }, []);
 
+  const getMessage = () => {
+    let result = `<${Object.keys(dts).length} `;
+    for (const [Key, val] of Object.entries(dts)) {
+      result += `${inputs[Key] || 0} `;
+    }
+    return result + '>';
+  }
   const updateInputs = (evt: { [key: string]: any }) => {
     setInputs(prev => ({ ...prev, ...evt }));
   };
@@ -82,8 +135,13 @@ export default function GamepadViewer() {
     } else {
       setDTS(prev => ({ ...prev, [key]: inputs[key] || 0 }));
     }
+    setShowSaveBtn(true);
   };
 
+  const saveDTS = async () => {
+    await AsyncStorage.setItem('dts', JSON.stringify(dts));
+    setShowSaveBtn(false);
+  }
   const renderButton = (key: string) => {
     return (
       <View
@@ -147,13 +205,15 @@ export default function GamepadViewer() {
   return (
     <ScrollView>
       <View style={styles.container}>
-        <Text style={styles.sectionTitle}>Buttons</Text>
+        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+          <Text style={styles.sectionTitle}>Buttons</Text>
+          {
+            showSaveBtn && <MyButton title='Save' onPress={saveDTS}/>
+          }
+        </View>
         <View
           style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            alignItems: 'stretch',
+            flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'stretch',
           }}
         >
           {[
@@ -205,7 +265,7 @@ export default function GamepadViewer() {
       <View style={styles.dts}>
         <Text style={styles.title}>Data Format</Text>
         <Text style={styles.value}>
-          {"<"}{Object.keys(dts).length} {Object.entries(dts).map(([Key, val]) => `${val} `)}{">"}
+          {"<"}{Object.keys(dts).length} {Object.entries(dts).map(([Key, val]) => `${inputs[Key] || 0} `).join(' ')}{">"}
         </Text>
       </View>
     </ScrollView>
