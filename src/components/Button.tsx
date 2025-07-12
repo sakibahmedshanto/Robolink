@@ -1,15 +1,21 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, StyleProp, TextStyle } from 'react-native';
+import { ReactNode } from 'react';
+import { TouchableOpacity, Text, StyleSheet, ViewStyle, StyleProp, TextStyle, View } from 'react-native';
 
-const MyButton = ({ title, onPress, style, textStyle }: { title:string, onPress: () => void, style?: StyleProp<ViewStyle>, textStyle?: StyleProp<TextStyle> }) => (
+const MyButton = ({ title, onPress, style, textStyle, children }: { title?:string, onPress: () => void, style?: StyleProp<ViewStyle>, textStyle?: StyleProp<TextStyle>,
+  children?: ReactNode
+ }) => (
   <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
-    <Text style={[styles.text, textStyle]}>{title}</Text>
+    {
+      children && <View>{children}</View>
+    }
+    {
+      title && <Text style={[styles.text, textStyle]}>{title}</Text>
+    }
   </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#00ff47',
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal:8,

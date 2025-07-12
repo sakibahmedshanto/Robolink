@@ -13,6 +13,7 @@ import { useBluetoothStatus } from './src/atoms/configs';
 import { BluetoothSerial } from "./src/specs";
 import { useEffect, useState } from 'react';
 import { showToast } from './src/components/toast';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 const RootStack = createNativeStackNavigator({
@@ -45,14 +46,8 @@ const Navigation = createStaticNavigation(RootStack);
 function App() {
   const [ _, setBluetoothStatus ] = useBluetoothStatus();
 
-  useEffect(() => {  
-    setBluetoothStatus({
-      isEnabled: BluetoothSerial.isEnabled(),
-      isConnected: BluetoothSerial.isConnected(),
-    });
-  }, []);
-
   useEffect(() => {
+    initializeBluetoothStatus();
     BluetoothSerial.on('bluetoothEnabled', (data:any) => {
       setBluetoothStatus((prev:any) => ({
         ...prev,
@@ -64,6 +59,7 @@ function App() {
       setBluetoothStatus((prev:any) => ({
         ...prev,
         isEnabled: false,
+        isConnected: false,
       }));
     });
 
@@ -104,6 +100,27 @@ function App() {
       BluetoothSerial.removeListener('error');
     }
   }, [])
+
+  const initializeBluetoothStatus = async () => {
+    let enableBtTransmission = false;
+    let intervalDelay = 100; // Default value
+    try {
+      enableBtTransmission = await AsyncStorage.getItem('enableBtTransmission') == 'false';
+      intervalDelay = parseInt(await AsyncStorage.getItem('intervalDelay') || '100');
+    } catch (error) {
+      console.error('Error loading Bluetooth status from storage:', error);
+    }
+    const isEnabled = await BluetoothSerial.isEnabled();
+    const isConnected = await BluetoothSerial.isConnected();
+
+    setBluetoothStatus((prev:any) => ({
+      ...prev,
+      intervalDelay: intervalDelay,
+      enableSendOverBT: !enableBtTransmission,
+      isEnabled,
+      isConnected,
+    }));
+  }
 
   return <Navigation />
 }

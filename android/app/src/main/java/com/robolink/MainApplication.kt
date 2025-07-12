@@ -12,6 +12,7 @@ import com.facebook.react.ReactPackage
 
 import com.robolink.globalkeyevent.GlobalKeyEventPackage
 import com.robolink.bluetoothserial.BluetoothSerialPackage;
+import com.robolink.network.NetworkPackage;
 
 
 class MainApplication : Application(), ReactApplication {
@@ -23,6 +24,7 @@ class MainApplication : Application(), ReactApplication {
               // Packages that cannot be autolinked yet can be added manually here
                   add(GlobalKeyEventPackage())
                   add(BluetoothSerialPackage())
+                  add(NetworkPackage())
               }
 
 

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Modal, View, Text, StyleSheet, Button, Switch, PermissionsAndroid, Platform, TouchableOpacity } from 'react-native';
+import { Modal, View, Text, StyleSheet, Button, Switch, PermissionsAndroid, Platform, TouchableOpacity, TextInput } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useBluetoothStatus } from '../atoms/configs';
-import { BluetoothSerial } from '../specs';
+import { BluetoothSerial, Network } from '../specs';
 import MyButton from './Button';
 import { primaryColor } from '../const/theme';
 import { showToast } from './toast';
@@ -46,10 +47,11 @@ const HeaderRightButtons = () => {
     <Icon.Button
         name="wifi"
         backgroundColor="#D72638"
-        color={buttonPressed == "wifi" ? "#00ff47" : "#fff"}
+        // color={buttonPressed == "wifi" ? "#00ff47" : "#fff"}
         onPress={() => setButtonPressed('wifi')}
     />
     <BluetoothModal visible={buttonPressed == 'bluetooth'} onClose={() => setButtonPressed('')} />
+    <WifiModal visible={buttonPressed == 'wifi'} onClose={() => setButtonPressed('')} />
   </View>
   );
 };
@@ -85,6 +87,25 @@ const BluetoothModal = ({ visible, onClose }:{visible:boolean, onClose:() => voi
             showToast("Failed to disconnect from device");
         }
     }
+
+    const toggleBluetoothTransmission = async () => {
+      const previousStatus = bluetoothStatus.enableSendOverBT;
+        if (bluetoothStatus.enableSendOverBT) {
+            setBluetoothStatus((prev:any) => ({
+                ...prev,
+                enableSendOverBT: false,
+            }));
+            showToast("Bluetooth transmission disabled");
+        } else {
+            setBluetoothStatus((prev:any) => ({
+                ...prev,
+                enableSendOverBT: true,
+            }));
+            showToast("Bluetooth transmission enabled");
+        }
+        await AsyncStorage.setItem('enableBtTransmission', String(!previousStatus));
+    }
+
     return (
     <Modal
       animationType="none"
@@ -101,7 +122,20 @@ const BluetoothModal = ({ visible, onClose }:{visible:boolean, onClose:() => voi
             <Text>Enable Bluetooth</Text>
             <Switch value={!!bluetoothStatus.isEnabled} onChange={toggleBluetooth} />
           </View>
-          
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
+            <Text>Enable Bluetooth Transmission</Text>
+            <Switch value={!!bluetoothStatus.enableSendOverBT} onChange={toggleBluetoothTransmission} />
+          </View>
+          <View>
+            <Text style={{fontSize: 10}}>Transmission Interval(ms)</Text>
+            <TextInput
+              keyboardType='numeric'
+              placeholder='Interval Delay (ms)'
+              value={String(bluetoothStatus.intervalDelay)}
+              style={{ borderColor: '#ccc', borderWidth: 1, padding: 5, marginBottom: 10 }}
+            />
+          </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
             <Text>Paired Devices</Text>
             <MyButton title='View' onPress={() => setViewPairedDevices(true)} style={{ backgroundColor: primaryColor }} textStyle={{color: "#fff"}}/>
@@ -115,10 +149,10 @@ const BluetoothModal = ({ visible, onClose }:{visible:boolean, onClose:() => voi
                   <Text style={{ fontSize: 12 }}>Device Name: {bluetoothStatus.deviceName || "Unknown"}</Text>
                   <Text style={{ fontSize: 12 }}>Device Address: {bluetoothStatus.deviceAddress || "Unknown"}</Text>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <MyButton title='Disconnect' onPress={disconnectDevice} style={{ backgroundColor: "orangered" }}/>
+                    <MyButton title='Disconnect' onPress={disconnectDevice} style={{ backgroundColor: primaryColor }}/>
                   </View>
                 </> 
-                : <Text style={{ color: '#D72638', fontWeight: 'bold' }}>Not Connected to any device</Text>
+                : <Text style={{ color: primaryColor }}>Not Connected to any device</Text>
             }
           </View>
           <Button title="Close" onPress={onClose} color={primaryColor} />
@@ -195,3 +229,46 @@ const PairedDevices = ({onClose}:{onClose:()=>void}) => {
         </View>
     );
     }
+
+
+
+const WifiModal = ({ visible, onClose }:{visible:boolean, onClose:() => void}) => {
+  const [ip, setIp] = useState<string|null>(null);
+
+  useEffect(() => {
+    console.log(Network)
+    Network.getIPAddress()
+      .then(ipAddress => {
+        console.log(ipAddress)
+        setIp(ipAddress);
+      })
+  }, [])
+  
+  return (
+    <Modal
+      animationType="none"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ width: 320, padding: 10, backgroundColor: 'white', borderRadius: 10 }}>
+        {
+          ip && 
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
+            <Text>IP:</Text>
+            <Text>{ip}</Text>
+          </View>
+        }
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
+            <Text>Enable UDP Broadcast</Text>
+            <Switch value={false} onChange={() => {}} />
+          </View>
+
+        <Button title="Close" onPress={onClose} color={primaryColor} />
+      </View>
+    </View>
+    </Modal>
+  )
+}

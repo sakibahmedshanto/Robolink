@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use, useRef } from 'react';
+import React, { useState, useEffect, use, useRef, useCallback } from 'react';
 import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -6,6 +6,8 @@ import { BluetoothSerial, GlobalKeyEvent } from '../specs';
 import { JoystickKeyMap } from '../const/JoystickKeyMap';
 import { useBluetoothStatus, useDTS } from '../atoms/configs';
 import MyButton from './Button';
+import { primaryColor } from '../const/theme';
+import TopHeaderButtons from './TopHeaderButtons';
 
 const styles = StyleSheet.create({
   container: {
@@ -52,10 +54,12 @@ const styles = StyleSheet.create({
 export default function GamepadViewer() {
   const [showSaveBtn, setShowSaveBtn] = useState(false);
   const [inputs, setInputs] = useState<{ [key: string]: any }>({});
+  const [ canEdit, setToggleEdit ] = useState(false);
   const [dts, setDTS] = useDTS();
   const [bluetoothStatus, _] = useBluetoothStatus();
   const inputsRef = useRef(inputs);
   const dtsRef = useRef(dts);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     inputsRef.current = inputs;
@@ -66,25 +70,19 @@ export default function GamepadViewer() {
   }, [dts]);
 
   useEffect(() => {
-    if(!bluetoothStatus.isConnected) return;
-    const ms = setInterval(() => {
+    if (!bluetoothStatus.isConnected || !bluetoothStatus.enableSendOverBT) return;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    intervalRef.current = setInterval(() => {
       const inputs = inputsRef.current;
       const dts = dtsRef.current;
-
-      let result = `<${Object.keys(dts).length} `;
-      for (const [Key, val] of Object.entries(dts)) {
-        result += `${inputs[Key] || 0} `;
-      }
-      result += '>';
-      console.log('Sending:', result); // Debug log
-      BluetoothSerial.writeToDevice(btoa(result))
-    }, 100);
-
+      const result = getMessage(dts, inputs);
+      BluetoothSerial.writeToDevice(btoa(result));
+    }, bluetoothStatus.intervalDelay || 100);
     return () => {
-      if (ms) clearInterval(ms);
-    }
-  },[bluetoothStatus.isConnected, bluetoothStatus.enableSendOverBT]);
-
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [bluetoothStatus.isConnected, bluetoothStatus.enableSendOverBT, bluetoothStatus.intervalDelay]);
 
   useEffect(() => {
     const initialInputs = {
@@ -100,7 +98,7 @@ export default function GamepadViewer() {
           setDTS(parsedData);
           setInputs(prev => ({ ...prev, ...parsedData }));
         } else setDTS(initialInputs);
-        
+
       });
   }, []);
 
@@ -115,12 +113,17 @@ export default function GamepadViewer() {
     return () => subs.forEach(sub => sub.remove());
   }, []);
 
-  const getMessage = () => {
+  const onToggleCheck = () => {
+    setToggleEdit(prev => !prev);
+  }
+
+  const getMessage = (dts: any, input: any) => {
     let result = `<${Object.keys(dts).length} `;
     for (const [Key, val] of Object.entries(dts)) {
       result += `${inputs[Key] || 0} `;
     }
-    return result + '>';
+    result += '>';
+    return result;
   }
   const updateInputs = (evt: { [key: string]: any }) => {
     setInputs(prev => ({ ...prev, ...evt }));
@@ -142,13 +145,13 @@ export default function GamepadViewer() {
     await AsyncStorage.setItem('dts', JSON.stringify(dts));
     setShowSaveBtn(false);
   }
+
   const renderButton = (key: string) => {
     return (
       <View
         style={{
           ...styles.row,
-          backgroundColor:
-            inputs[key] && inputs[key] !== 0 ? '#00000010' : 'transparent',
+          backgroundColor: inputs[key] ? '#00000010' : 'transparent',
         }}
         key={key}
       >
@@ -165,11 +168,12 @@ export default function GamepadViewer() {
           </Text>
           <Text style={styles.value}> {inputs[key] || 0}</Text>
         </View>
-        <CheckBox disabled={false} value={dts[key] || dts[key] == 0} onChange={() => toggleDTS(key)}
+        <CheckBox tintColors={{ true: canEdit ? primaryColor : "#ffffff33", false: 'white' }} onFillColor={canEdit ? primaryColor : "#ccc"} disabled={!canEdit} value={dts[key] || dts[key] == 0} onChange={() => toggleDTS(key)}
         />
       </View>
     );
   };
+
 
   const renderAxis = (key: string) => {
     return (
@@ -196,7 +200,7 @@ export default function GamepadViewer() {
           </Text>
           <Text style={styles.value}> {inputs[key] || 0}</Text>
         </View>
-        <CheckBox disabled={false} value={dts[key] || dts[key] == 0} onChange={() => toggleDTS(key)}
+        <CheckBox tintColors={{ true: canEdit ? primaryColor : "#ffffff33", false: 'white' }} onFillColor={canEdit ? primaryColor : "#ccc"} disabled={!canEdit} value={dts[key] || dts[key] == 0} onChange={() => toggleDTS(key)}
         />
       </View>
     );
@@ -204,11 +208,15 @@ export default function GamepadViewer() {
 
   return (
     <ScrollView>
+      <TopHeaderButtons
+        enableCheck={canEdit}
+        onCheckPress={onToggleCheck}
+      />
       <View style={styles.container}>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={styles.sectionTitle}>Buttons</Text>
           {
-            showSaveBtn && <MyButton title='Save' onPress={saveDTS}/>
+            showSaveBtn && <MyButton title='Save' onPress={saveDTS} style={{backgroundColor: "#ff0"}} />
           }
         </View>
         <View
@@ -216,23 +224,7 @@ export default function GamepadViewer() {
             flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'stretch',
           }}
         >
-          {[
-            '96',
-            '97',
-            '98',
-            '99',
-            '100',
-            '101',
-            '102',
-            '103',
-            '104',
-            '105',
-            '106',
-            '107',
-            '108',
-            '109',
-            '110',
-          ].map(renderButton)}
+          {['96', '97', '98', '99', '100', '101', '102', '103', '104', '105', '106', '107', '108', '109', '110'].map(renderButton)}
         </View>
 
         <Text style={styles.sectionTitle}>Axes</Text>
@@ -265,7 +257,7 @@ export default function GamepadViewer() {
       <View style={styles.dts}>
         <Text style={styles.title}>Data Format</Text>
         <Text style={styles.value}>
-          {"<"}{Object.keys(dts).length} {Object.entries(dts).map(([Key, val]) => `${inputs[Key] || 0} `).join(' ')}{">"}
+          {getMessage(dts, inputs)}
         </Text>
       </View>
     </ScrollView>
