@@ -4,10 +4,12 @@ import CheckBox from '@react-native-community/checkbox';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BluetoothSerial, GlobalKeyEvent } from '../specs';
 import { JoystickKeyMap } from '../const/JoystickKeyMap';
-import { useBluetoothStatus, useDTS } from '../atoms/configs';
+import { useBluetoothStatus, useDTS, useUdpStatus } from '../atoms/configs';
 import MyButton from './Button';
 import { primaryColor } from '../const/theme';
 import TopHeaderButtons from './TopHeaderButtons';
+import { broadcastUdpData, useUdpSocket } from '../atoms/udp';
+// import { broadcastUdpData, udpSocket } from '../utils/udp';
 
 const styles = StyleSheet.create({
   container: {
@@ -57,9 +59,12 @@ export default function GamepadViewer() {
   const [ canEdit, setToggleEdit ] = useState(false);
   const [dts, setDTS] = useDTS();
   const [bluetoothStatus, _] = useBluetoothStatus();
+  const [udpStatus, __] = useUdpStatus();
   const inputsRef = useRef(inputs);
   const dtsRef = useRef(dts);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const btIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const udpIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { socket:udpSocket } = useUdpSocket();
 
   useEffect(() => {
     inputsRef.current = inputs;
@@ -71,18 +76,45 @@ export default function GamepadViewer() {
 
   useEffect(() => {
     if (!bluetoothStatus.isConnected || !bluetoothStatus.enableSendOverBT) return;
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (btIntervalRef.current) clearInterval(btIntervalRef.current);
 
-    intervalRef.current = setInterval(() => {
+    btIntervalRef.current = setInterval(() => {
       const inputs = inputsRef.current;
       const dts = dtsRef.current;
       const result = getMessage(dts, inputs);
       BluetoothSerial.writeToDevice(btoa(result));
     }, bluetoothStatus.intervalDelay || 100);
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (btIntervalRef.current) clearInterval(btIntervalRef.current);
     };
   }, [bluetoothStatus.isConnected, bluetoothStatus.enableSendOverBT, bluetoothStatus.intervalDelay]);
+
+
+  useEffect(() => {
+    if (!udpStatus.enableSendOverUdp) {
+      if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+      return;
+    }
+    if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+
+    udpIntervalRef.current = setInterval(() => {
+      if (!udpStatus.enableSendOverUdp) {
+        if(udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+        return;
+      }
+      
+      const inputs = inputsRef.current;
+      const dts = dtsRef.current;
+      const result = getMessage(dts, inputs);
+      if(udpSocket) broadcastUdpData(udpSocket, result, udpStatus.port);
+      else console.warn('UDP socket not available');
+    }, udpStatus.intervalDelay || 100);
+
+    return () => {
+      if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+    }
+  
+  }, [udpStatus.enableSendOverUdp, udpStatus.intervalDelay, udpStatus.port])
 
   useEffect(() => {
     const initialInputs = {

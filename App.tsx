@@ -9,7 +9,7 @@ import { createStaticNavigation, } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import GamepadInputScreen from './src/screens/GamepadInputScreen';
 import HeaderRightButtons from './src/components/HeaderRightButtons';
-import { useBluetoothStatus } from './src/atoms/configs';
+import { useBluetoothStatus, useUdpStatus } from './src/atoms/configs';
 import { BluetoothSerial } from "./src/specs";
 import { useEffect, useState } from 'react';
 import { showToast } from './src/components/toast';
@@ -45,9 +45,12 @@ const Navigation = createStaticNavigation(RootStack);
 
 function App() {
   const [ _, setBluetoothStatus ] = useBluetoothStatus();
+  const [ __, setUdpStatus] = useUdpStatus();
 
   useEffect(() => {
     initializeBluetoothStatus();
+    initializeUdpStatus();
+
     BluetoothSerial.on('bluetoothEnabled', (data:any) => {
       setBluetoothStatus((prev:any) => ({
         ...prev,
@@ -102,11 +105,12 @@ function App() {
   }, [])
 
   const initializeBluetoothStatus = async () => {
-    let enableBtTransmission = false;
+    let enableBtTransmission = null;
     let intervalDelay = 100; // Default value
     try {
-      enableBtTransmission = await AsyncStorage.getItem('enableBtTransmission') == 'false';
-      intervalDelay = parseInt(await AsyncStorage.getItem('intervalDelay') || '100');
+      enableBtTransmission = await AsyncStorage.getItem('enableBtTransmission');
+      console.log('enableBtTransmission', enableBtTransmission);
+      intervalDelay = parseInt(await AsyncStorage.getItem('btIntervalDelay') || '100');
     } catch (error) {
       console.error('Error loading Bluetooth status from storage:', error);
     }
@@ -116,10 +120,28 @@ function App() {
     setBluetoothStatus((prev:any) => ({
       ...prev,
       intervalDelay: intervalDelay,
-      enableSendOverBT: !enableBtTransmission,
+      enableSendOverBT: enableBtTransmission == null ? true : enableBtTransmission === 'true',
       isEnabled,
       isConnected,
     }));
+  }
+
+  const initializeUdpStatus = async () => {
+    let enableUdpTransmission = false;
+    let udpIntervalDelay = 100; // Default value
+    try {
+      enableUdpTransmission = (await AsyncStorage.getItem('enableUdpTransmission')) == 'false';
+      udpIntervalDelay = parseInt(await AsyncStorage.getItem('udpIntervalDelay') || '100');
+      const port = parseInt(await AsyncStorage.getItem('port') || '1234');
+      setUdpStatus((prev) => ({
+        ...prev,
+        enableSendOverUdp: enableUdpTransmission,
+        intervalDelay: udpIntervalDelay,
+        port
+      }))
+    } catch (error) {
+      console.error('Error loading Bluetooth status from storage:', error);
+    }
   }
 
   return <Navigation />

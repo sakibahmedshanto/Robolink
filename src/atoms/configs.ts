@@ -8,6 +8,12 @@ type BluetoothStatus = {
     deviceAddress: string,
     intervalDelay: number,
 }
+type UdpStatus = {
+    enableSendOverUdp: boolean,
+    ipAddress: string | null,
+    port: number,
+    intervalDelay: number,
+}
 // Data To Send
 const DTSAtom = atom<{[key: string]: any}>({})
 const mediumAtom = atom<'bt' | 'udp'>('bt')
@@ -20,6 +26,15 @@ const bluetoothStatusAtom = atom<BluetoothStatus>({
     intervalDelay: 100,
 })
 
+const udpStatusAtom = atom<UdpStatus>({
+    enableSendOverUdp: false,
+    ipAddress: null,
+    port: 1234,
+    intervalDelay: 100,
+})
+
+
 export const useDTS = () => useAtom(DTSAtom)
 export const useMedium = () => useAtom(mediumAtom)
 export const useBluetoothStatus = () => useAtom(bluetoothStatusAtom)
+export const useUdpStatus = () => useAtom(udpStatusAtom)

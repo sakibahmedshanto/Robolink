@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Modal, View, Text, StyleSheet, Button, Switch, PermissionsAndroid, Platform, TouchableOpacity, TextInput } from 'react-native';
+import { Modal, View, Text, StyleSheet, Button, Switch, PermissionsAndroid, Platform, TouchableOpacity, TextInput, TextInputChangeEvent } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useBluetoothStatus } from '../atoms/configs';
+import { useBluetoothStatus, useUdpStatus } from '../atoms/configs';
 import { BluetoothSerial, Network } from '../specs';
 import MyButton from './Button';
 import { primaryColor } from '../const/theme';
 import { showToast } from './toast';
+
 
 const styles = StyleSheet.create({
   container: {
@@ -106,6 +107,19 @@ const BluetoothModal = ({ visible, onClose }:{visible:boolean, onClose:() => voi
         await AsyncStorage.setItem('enableBtTransmission', String(!previousStatus));
     }
 
+    const handleIntervalChange = async (e:TextInputChangeEvent) => {
+        const interval = parseInt(e.nativeEvent.text);
+        if (isNaN(interval) || interval <= 0) {
+            showToast("Invalid interval value");
+            return;
+        }
+        setBluetoothStatus((prev:any) => ({
+            ...prev,
+            intervalDelay: interval,
+        }));
+        await AsyncStorage.setItem('btIntervalDelay', String(interval));
+    }
+    
     return (
     <Modal
       animationType="none"
@@ -133,6 +147,7 @@ const BluetoothModal = ({ visible, onClose }:{visible:boolean, onClose:() => voi
               keyboardType='numeric'
               placeholder='Interval Delay (ms)'
               value={String(bluetoothStatus.intervalDelay)}
+              onChange={handleIntervalChange}
               style={{ borderColor: '#ccc', borderWidth: 1, padding: 5, marginBottom: 10 }}
             />
           </View>
@@ -233,17 +248,44 @@ const PairedDevices = ({onClose}:{onClose:()=>void}) => {
 
 
 const WifiModal = ({ visible, onClose }:{visible:boolean, onClose:() => void}) => {
-  const [ip, setIp] = useState<string|null>(null);
+  const [udpStatus, setUdpStatus] = useUdpStatus();
+  const [interval, setInterval] = useState(`${udpStatus.intervalDelay || 1234}`);
 
   useEffect(() => {
-    console.log(Network)
     Network.getIPAddress()
       .then(ipAddress => {
         console.log(ipAddress)
-        setIp(ipAddress);
+        setUdpStatus((prev)=>({...prev, ipAddress}));
       })
   }, [])
-  
+
+  const toggleUdp = async () => {
+    const previousEnableUdp = udpStatus.enableSendOverUdp;
+    setUdpStatus((prev) => ({
+      ...prev,
+      enableSendOverUdp: !prev.enableSendOverUdp
+    }));
+    await AsyncStorage.setItem('enableUdpTransmission', String(!previousEnableUdp));
+  }
+
+
+    const handleIntervalChange = async (e:TextInputChangeEvent) => {
+        setInterval(e.nativeEvent.text);
+      }
+
+
+    const saveInterval = async () => {
+        const _interval = parseInt(interval);
+        if (isNaN(_interval) || _interval <= 0) {
+            showToast("Invalid interval value");
+            return;
+        }
+        setUdpStatus((prev:any) => ({
+            ...prev,
+            intervalDelay: _interval,
+        }));
+        await AsyncStorage.setItem('udpIntervalDelay', String(_interval));
+    }
   return (
     <Modal
       animationType="none"
@@ -254,18 +296,40 @@ const WifiModal = ({ visible, onClose }:{visible:boolean, onClose:() => void}) =
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <View style={{ width: 320, padding: 10, backgroundColor: 'white', borderRadius: 10 }}>
         {
-          ip && 
+          udpStatus.ipAddress && 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
             <Text>IP:</Text>
-            <Text>{ip}</Text>
+            <Text>{udpStatus.ipAddress}</Text>
           </View>
         }
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
             <Text>Enable UDP Broadcast</Text>
-            <Switch value={false} onChange={() => {}} />
+            <Switch value={udpStatus.enableSendOverUdp} onChange={toggleUdp} />
           </View>
 
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", gap: 10 }}>
+            <View  style={{ flex: 1 }}>
+              <Text style={{fontSize: 10}}>Transmission Interval(ms)</Text>
+              <TextInput
+                keyboardType='numeric'
+                placeholder='Interval Delay (ms)'
+                value={String(interval)}
+                onChange={handleIntervalChange}
+                style={{ borderColor: '#ccc', borderWidth: 1, padding: 5, marginBottom: 10 }}
+              />
+            </View>
+            {
+              interval != `${udpStatus.intervalDelay}` &&
+              (
+                <MyButton
+                 title='Save'
+                 style={{ backgroundColor: '#ef53504f' }}
+                 onPress={saveInterval}
+                />
+              )
+            }
+          </View>
         <Button title="Close" onPress={onClose} color={primaryColor} />
       </View>
     </View>
