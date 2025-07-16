@@ -10,7 +10,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@react-native/new-app-screen": "0.80.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-native-community/checkbox": "^0.5.20",
@@ -23,7 +22,6 @@
     "postinstall-postinstall": "^2.1.0",
     "react": "19.1.0",
     "react-native": "0.80.0",
-    "robolink": "file:"
     "react-native-ble-plx": "^3.0.0",
     "react-native-safe-area-context": "^5.5.1",
     "react-native-screens": "^4.11.1",
@@ -55,4 +53,3 @@
     "node": ">=18"
   }
 }
-
