@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
+    "android": "react-native run-android --active-arch-only",
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
@@ -11,9 +11,24 @@
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.80.0",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-clipboard/clipboard": "^1.16.3",
+    "@react-native-community/checkbox": "^0.5.20",
+    "@react-native/new-app-screen": "0.80.0",
+    "@react-navigation/elements": "^2.5.2",
+    "@react-navigation/native": "^7.1.14",
+    "@react-navigation/native-stack": "^7.3.21",
+    "jotai": "^2.12.5",
+    "patch-package": "^8.0.0",
+    "postinstall-postinstall": "^2.1.0",
     "react": "19.1.0",
     "react-native": "0.80.0",
     "robolink": "file:"
+    "react-native-ble-plx": "^3.0.0",
+    "react-native-safe-area-context": "^5.5.1",
+    "react-native-screens": "^4.11.1",
+    "react-native-udp": "^4.1.7",
+    "react-native-vector-icons": "^10.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -28,6 +43,7 @@
     "@react-native/typescript-config": "0.80.0",
     "@types/jest": "^29.5.13",
     "@types/react": "^19.1.0",
+    "@types/react-native-vector-icons": "^6.4.18",
     "@types/react-test-renderer": "^19.1.0",
     "eslint": "^8.19.0",
     "jest": "^29.6.3",
@@ -39,3 +55,4 @@
     "node": ">=18"
   }
 }
+

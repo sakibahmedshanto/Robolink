@@ -10,17 +10,17 @@ const keyDown = 'onKeyDown'
 const keyUp = 'onKeyUp'
 
 const keyEvent = new NativeEventEmitter(NativeModules.RNGlobalKeyEvent)
-export const addKeyDownListener = (cb) =>
+export const addKeyDownListener = (cb:(data:any) => void) =>
   keyEvent.addListener(keyDown, (evt) => {
     return cb({ ...evt })
   })
 
-export const addKeyUpListener = (cb) =>
+export const addKeyUpListener = (cb:(data:any) => void) =>
   keyEvent.addListener(keyUp, (evt) => {
     return cb({ ...evt })
   })
 
-export const onJoystickMoveListener = (cb) =>
+export const onJoystickMoveListener = (cb:(data:any) => void) =>
   DeviceEventEmitter.addListener('onJoystickMove', (evt) => {
     return cb({ ...evt })
   })
