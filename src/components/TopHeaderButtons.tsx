@@ -87,8 +87,9 @@ const CodeModal = ({
               showCodeFor == 'arduino-bt' ? '#fe00002a' : '#0000002a',
             marginHorizontal: 2,
             borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0,
+            borderBottomRightRadius: 0
           }}
+          textStyle={{ color: '#000' }}
           title="Arduino Bluetooth"
           onPress={() => setShowCodeFor('arduino-bt')}
         />
@@ -100,6 +101,7 @@ const CodeModal = ({
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
           }}
+          textStyle={{ color: '#000' }}
           title="Esp32 Bluetooth"
           onPress={() => setShowCodeFor('esp32-bt')}
         />
@@ -111,6 +113,7 @@ const CodeModal = ({
             borderBottomLeftRadius: 0,
             borderBottomRightRadius: 0,
           }}
+          textStyle={{ color: '#000' }}
           title="UDP"
           onPress={() => setShowCodeFor('esp32-udp')}
         />

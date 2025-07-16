@@ -22,7 +22,8 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderBottomWidth: 1,
     paddingHorizontal: 3,
-    fontSize: 12
+    fontSize: 12,
+    color: "black" 
   },
   disabled: {
     color: '#ccc',
@@ -133,12 +134,12 @@ const BluetoothModal = ({ visible, onClose }:{visible:boolean, onClose:() => voi
             :
         <View style={{ width: 320, padding: 10, backgroundColor: 'white', borderRadius: 10 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
-            <Text>Enable Bluetooth</Text>
+            <Text style={{color: "black"}}>Enable Bluetooth</Text>
             <Switch value={!!bluetoothStatus.isEnabled} onChange={toggleBluetooth} />
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
-            <Text>Enable Bluetooth Transmission</Text>
+            <Text style={{color: "black"}}>Enable Bluetooth Transmission</Text>
             <Switch value={!!bluetoothStatus.enableSendOverBT} onChange={toggleBluetoothTransmission} />
           </View>
           <View>
@@ -152,7 +153,7 @@ const BluetoothModal = ({ visible, onClose }:{visible:boolean, onClose:() => voi
             />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
-            <Text>Paired Devices</Text>
+            <Text style={{color: "black"}}>Paired Devices</Text>
             <MyButton title='View' onPress={() => setViewPairedDevices(true)} style={{ backgroundColor: primaryColor }} textStyle={{color: "#fff"}}/>
           </View>
           <View style={{ marginBottom: 10 }}>
@@ -160,9 +161,9 @@ const BluetoothModal = ({ visible, onClose }:{visible:boolean, onClose:() => voi
               bluetoothStatus.isConnected
                 ?
                 <>
-                  <Text>Conntected To:</Text>
-                  <Text style={{ fontSize: 12 }}>Device Name: {bluetoothStatus.deviceName || "Unknown"}</Text>
-                  <Text style={{ fontSize: 12 }}>Device Address: {bluetoothStatus.deviceAddress || "Unknown"}</Text>
+                  <Text style={{color: "black"}}>Conntected To:</Text>
+                  <Text style={{ fontSize: 12, color: "black" }}>Device Name: {bluetoothStatus.deviceName || "Unknown"}</Text>
+                  <Text style={{ fontSize: 12, color: "black" }}>Device Address: {bluetoothStatus.deviceAddress || "Unknown"}</Text>
                   <View style={{ alignItems: 'flex-end' }}>
                     <MyButton title='Disconnect' onPress={disconnectDevice} style={{ backgroundColor: primaryColor }}/>
                   </View>
@@ -226,7 +227,7 @@ const PairedDevices = ({onClose}:{onClose:()=>void}) => {
     };
     return (
         <View style={{ padding: 10, backgroundColor: 'white' }}>
-        <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 10 }}>Paired Devices</Text>
+        <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 10, color: "black"  }}>Paired Devices</Text>
         <Button title="Refresh" onPress={fetchPairedDevices} color={primaryColor} />
         {pairedDevices.map((device) => (
             <TouchableOpacity
@@ -298,25 +299,25 @@ const WifiModal = ({ visible, onClose }:{visible:boolean, onClose:() => void}) =
         {
           udpStatus.ipAddress && 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
-            <Text>IP:</Text>
-            <Text>{udpStatus.ipAddress}</Text>
+            <Text style={{color: "black"}}>IP:</Text>
+            <Text style={{color: "black"}}>{udpStatus.ipAddress}</Text>
           </View>
         }
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
-            <Text>Enable UDP Broadcast</Text>
+            <Text style={{color: "black"}}>Enable UDP Broadcast</Text>
             <Switch value={udpStatus.enableSendOverUdp} onChange={toggleUdp} />
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", gap: 10 }}>
             <View  style={{ flex: 1 }}>
-              <Text style={{fontSize: 10}}>Transmission Interval(ms)</Text>
+              <Text style={{fontSize: 10, color: "black" }}>Transmission Interval(ms)</Text>
               <TextInput
                 keyboardType='numeric'
                 placeholder='Interval Delay (ms)'
                 value={String(interval)}
                 onChange={handleIntervalChange}
-                style={{ borderColor: '#ccc', borderWidth: 1, padding: 5, marginBottom: 10 }}
+                style={{ borderColor: '#ccc', borderWidth: 1, padding: 5, marginBottom: 10, color: "black"  }}
               />
             </View>
             {
