@@ -149,7 +149,7 @@ export default function GamepadViewer() {
     setToggleEdit(prev => !prev);
   }
 
-  const getMessage = (dts: any, input: any) => {
+  const getMessage = (dts: any, inputs: any) => {
     let result = `<${Object.keys(dts).length} `;
     for (const [Key, val] of Object.entries(dts)) {
       result += `${inputs[Key] || 0} `;
