@@ -1,18 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Slider from '@react-native-community/slider';
 
-const SliderButton = ({ label }: { label: string }) => {
-  const [value, setValue] = useState(50);
+interface SliderButtonProps {
+  value: number;
+  minimumValue?: number;
+  maximumValue?: number;
+  onValueChange: (value: number) => void;
+  label?: string;
+}
+
+const SliderButton: React.FC<SliderButtonProps> = ({
+  value,
+  minimumValue = 0,
+  maximumValue = 100,
+  onValueChange,
+  label = 'Slider',
+}) => {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>{label}: {value}</Text>
       <Slider
         style={{ width: 120 }}
-        minimumValue={0}
-        maximumValue={100}
+        minimumValue={minimumValue}
+        maximumValue={maximumValue}
         value={value}
-        onValueChange={setValue}
+        onValueChange={onValueChange}
         minimumTrackTintColor="#fff"
         maximumTrackTintColor="#888"
         thumbTintColor="#D72638"
