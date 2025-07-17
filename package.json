@@ -5,6 +5,9 @@
   "scripts": {
     "android": "react-native run-android --active-arch-only",
     "ios": "react-native run-ios",
+    "android:build": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res",
+    "android:apk": "cmd /c \"cd android && gradlew.bat assembleRelease && cd ..\"",
+    "android:install": "cmd /c \"cd android/app/build/outputs/apk/release && adb install app-release.apk && cd ../../../../../../",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest"

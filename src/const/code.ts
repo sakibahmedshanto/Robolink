@@ -60,6 +60,7 @@ void parseChannels(String data) {
   }
   Serial.println();
 }
+
 `;
 
 const arduinoCodeForBluetooth = `
