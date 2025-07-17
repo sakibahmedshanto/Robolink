@@ -1,8 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Button, TouchableOpacity, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Button,
+  TouchableOpacity,
+  TextInput,
+  Dimensions,
+} from 'react-native';
+// @ts-ignore
+import Draggable from 'react-native-draggable';
+// @ts-ignore
 import DirectionButton from '../components/DirectionButton';
+// @ts-ignore
 import ActionButton from '../components/ActionButton';
+// @ts-ignore
 import ToggleButton from '../components/ToggleButton';
+// @ts-ignore
 import SliderButton from '../components/SliderButton';
 
 const BUTTON_TYPES = [
@@ -13,19 +27,23 @@ const BUTTON_TYPES = [
 ];
 
 const CustomJoystickScreen = () => {
+  const screen = Dimensions.get('window');
   const [layout, setLayout] = useState([
-    { type: 'direction', label: 'Up' },
-    { type: 'direction', label: 'Down' },
-    { type: 'action', label: 'Fire' },
-    { type: 'toggle', label: 'Power' },
-    { type: 'slider', label: 'Speed' },
+    { type: 'direction', label: 'Up', x: screen.width / 2 - 40, y: 100 },
+    { type: 'direction', label: 'Down', x: screen.width / 2 - 40, y: 200 },
+    { type: 'action', label: 'Fire', x: screen.width / 2 + 80, y: 150 },
+    { type: 'toggle', label: 'Power', x: screen.width / 2 - 120, y: 150 },
+    { type: 'slider', label: 'Speed', x: screen.width / 2 - 40, y: 300 },
   ]);
   const [newType, setNewType] = useState('direction');
   const [newLabel, setNewLabel] = useState('');
 
   const addButton = () => {
     if (!newLabel.trim()) return;
-    setLayout([...layout, { type: newType, label: newLabel }]);
+    setLayout([
+      ...layout,
+      { type: newType, label: newLabel, x: screen.width / 2 - 40, y: 400 },
+    ]);
     setNewLabel('');
   };
 
@@ -33,9 +51,10 @@ const CustomJoystickScreen = () => {
     setLayout(layout.filter((_, i) => i !== idx));
   };
 
+  // Removed PanResponder logic, now using Draggable
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Custom Virtual Joystick</Text>
+    <View style={styles.canvas}>
       <View style={styles.addArea}>
         <TextInput
           style={styles.input}
@@ -44,10 +63,13 @@ const CustomJoystickScreen = () => {
           onChangeText={setNewLabel}
         />
         <View style={styles.typePicker}>
-          {BUTTON_TYPES.map((btn) => (
+          {BUTTON_TYPES.map(btn => (
             <TouchableOpacity
               key={btn.type}
-              style={[styles.typeButton, newType === btn.type && styles.typeButtonActive]}
+              style={[
+                styles.typeButton,
+                newType === btn.type && styles.typeButtonActive,
+              ]}
               onPress={() => setNewType(btn.type)}
             >
               <Text style={styles.typeButtonText}>{btn.label}</Text>
@@ -56,39 +78,52 @@ const CustomJoystickScreen = () => {
         </View>
         <Button title="Add Button" onPress={addButton} />
       </View>
-      <View style={styles.joystickArea}>
-        {layout.map((item, idx) => (
-          <View key={idx} style={styles.buttonWrapper}>
-            {item.type === 'direction' && <DirectionButton label={item.label} />}
-            {item.type === 'action' && <ActionButton label={item.label} />}
-            {item.type === 'toggle' && <ToggleButton label={item.label} />}
-            {item.type === 'slider' && <SliderButton label={item.label} />}
-            <TouchableOpacity style={styles.removeBtn} onPress={() => removeButton(idx)}>
-              <Text style={styles.removeBtnText}>Remove</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-      </View>
+      {layout.map((item, idx) => {
+        let ButtonComponent = null;
+        if (item.type === 'direction') ButtonComponent = DirectionButton;
+        if (item.type === 'action') ButtonComponent = ActionButton;
+        if (item.type === 'toggle') ButtonComponent = ToggleButton;
+        if (item.type === 'slider') ButtonComponent = SliderButton;
+        return (
+          <Draggable
+            key={idx}
+            x={item.x}
+            y={item.y}
+            z={2}
+            shouldReverse={false}
+            onDrag={(e, gestureState) => {}}
+            onPressOut={() => {
+            }}
+            onRelease={(e, gestureState) => {}}
+            onDragRelease={(e, gestureState, bounds) => {}}
+          >
+            <View style={{ alignItems: 'center' }}>
+              <ButtonComponent label={item.label} />
+              <TouchableOpacity
+                style={styles.removeBtn}
+                onPress={() => removeButton(idx)}
+              >
+                <Text style={styles.removeBtnText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          </Draggable>
+        );
+      })}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  canvas: {
     flex: 1,
     backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    position: 'relative',
   },
   addArea: {
     marginBottom: 24,
     alignItems: 'center',
     width: '100%',
+    zIndex: 2,
   },
   input: {
     borderWidth: 1,
@@ -117,15 +152,10 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: 'bold',
   },
-  joystickArea: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    // spacing handled by button component's margin
-  },
-  buttonWrapper: {
+  draggable: {
+    position: 'absolute',
+    zIndex: 1,
     alignItems: 'center',
-    margin: 8,
   },
   removeBtn: {
     marginTop: 4,
