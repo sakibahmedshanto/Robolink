@@ -8,6 +8,7 @@
 import { createStaticNavigation, } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import GamepadInputScreen from './src/screens/GamepadInputScreen';
+import CustomJoystickScreen from './src/screens/CustomJoystickScreen';
 import HeaderRightButtons from './src/components/HeaderRightButtons';
 import { useBluetoothStatus, useUdpStatus } from './src/atoms/configs';
 import { BluetoothSerial } from "./src/specs";
@@ -33,6 +34,13 @@ const RootStack = createNativeStackNavigator({
       screen: GamepadInputScreen,
       options: {
         title: 'Gamepad Inputs',
+        headerShown: true,
+      },
+    },
+    CustomJoystick: {
+      screen: CustomJoystickScreen,
+      options: {
+        title: 'Custom Joystick',
         headerShown: true,
       },
     },
