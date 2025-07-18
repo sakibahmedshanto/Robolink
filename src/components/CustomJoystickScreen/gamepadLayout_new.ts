@@ -13,23 +13,23 @@ import { getUsableScreenDimensions, constrainToScreenBounds } from './screenBoun
 export const createGamepadLayout = (): JoystickButton[] => {
   const bounds = getUsableScreenDimensions();
   
-  // Use the actual screen dimensions for positioning
-  const screenWidth = Math.max(bounds.width + (bounds.minX * 2), bounds.maxX);
-  const screenHeight = Math.max(bounds.height + bounds.minY + 20, bounds.maxY);
+  // Use the usable screen dimensions
+  const width = bounds.width + bounds.minX + bounds.minX;
+  const height = bounds.height + bounds.minY + (bounds.minY - 70); // Subtract header height
   
   // Calculate positions based on screen dimensions to match the image
-  const leftJoystickX = screenWidth * 0.18;
-  const rightJoystickX = screenWidth * 0.75;
-  const joystickY = screenHeight * 0.70; // Adjusted to be more centered
+  const leftJoystickX = width * 0.18;
+  const rightJoystickX = width * 0.75;
+  const joystickY = height * 0.75;
   
-  const dpadX = screenWidth * 0.12;
-  const dpadY = screenHeight * 0.40; // Adjusted to be more centered
+  const dpadX = width * 0.12;
+  const dpadY = height * 0.35;
   
-  const actionButtonsX = screenWidth * 0.85;
-  const actionButtonsY = screenHeight * 0.50; // Adjusted to be more centered
-  const shoulderButtonsY = bounds.minY + 20; // Just below header
-  const macroButtonsX = screenWidth * 0.45;
-  const macroButtonsY = screenHeight * 0.30;
+  const actionButtonsX = width * 0.85;
+  const actionButtonsY = height * 0.45;
+  const shoulderButtonsY = height * 0.12;
+  const macroButtonsX = width * 0.45;
+  const macroButtonsY = height * 0.28;
   
   // Helper function to create button with constrained position
   const createButton = (
@@ -163,67 +163,68 @@ export const createGamepadLayout = (): JoystickButton[] => {
       '#FF6347',
       { action: 'cancel' }
     ),
-      // Horn Button (positioned at bottom center)
+    
+    // Horn Button (positioned at bottom center)
     createButton(
       'horn',
       'action',
       '🔊',
-      screenWidth * 0.5,
-      screenHeight * 0.85,
+      width * 0.5,
+      height * 0.85,
       50,
       '#FFD700',
       { action: 'horn' }
     ),
     
     // Shoulder Buttons (positioned at the top)
-    // createButton(
-    //   'l1',
-    //   'action',
-    //   'L1',
-    //   screenWidth * 0.78,
-    //   shoulderButtonsY,
-    //   42,
-    //   '#808080',
-    //   { action: 'custom' }
-    // ),
-    // createButton(
-    //   'l2',
-    //   'action',
-    //   'L2',
-    //   screenWidth * 0.88,
-    //   shoulderButtonsY,
-    //   42,
-    //   '#808080',
-    //   { action: 'custom' }
-    // ),
-    // createButton(
-    //   'r1',
-    //   'action',
-    //   'R1',
-    //   screenWidth * 0.78,
-    //   shoulderButtonsY + 65,
-    //   42,
-    //   '#808080',
-    //   { action: 'custom' }
-    // ),
-    // createButton(
-    //   'r2',
-    //   'action',
-    //   'R2',
-    //   screenWidth * 0.88,
-    //   shoulderButtonsY + 65,
-    //   42,
-    //   '#808080',
-    //   { action: 'custom' }
-    // ),
+    createButton(
+      'l1',
+      'action',
+      'L1',
+      width * 0.78,
+      shoulderButtonsY,
+      42,
+      '#808080',
+      { action: 'custom' }
+    ),
+    createButton(
+      'l2',
+      'action',
+      'L2',
+      width * 0.88,
+      shoulderButtonsY,
+      42,
+      '#808080',
+      { action: 'custom' }
+    ),
+    createButton(
+      'r1',
+      'action',
+      'R1',
+      width * 0.78,
+      shoulderButtonsY + 65,
+      42,
+      '#808080',
+      { action: 'custom' }
+    ),
+    createButton(
+      'r2',
+      'action',
+      'R2',
+      width * 0.88,
+      shoulderButtonsY + 65,
+      42,
+      '#808080',
+      { action: 'custom' }
+    ),
     
     // Menu/System Buttons (positioned in the center)
     createButton(
       'menu',
       'action',
       'MENU',
-      screenWidth * 0.45,
-      screenHeight * 0.58,
+      width * 0.45,
+      height * 0.58,
       38,
       '#333333',
       { action: 'custom' }
@@ -232,8 +233,8 @@ export const createGamepadLayout = (): JoystickButton[] => {
       'back',
       'action',
       'BACK',
-      screenWidth * 0.55,
-      screenHeight * 0.58,
+      width * 0.55,
+      height * 0.58,
       38,
       '#333333',
       { action: 'custom' }

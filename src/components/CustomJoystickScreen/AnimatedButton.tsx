@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -12,6 +12,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { JoystickButton } from './types';
+import { constrainToScreenBoundsWorklet } from './screenBounds';
 import DirectionButton from '../DirectionButton';
 import ActionButton from '../ActionButton';
 import ToggleButton from '../ToggleButton';
@@ -36,8 +37,7 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   onEditButton,
   onRemoveButton,
   onSliderValueChange,
-}) => {
-  // Animated values for position
+}) => {  // Animated values for position
   const translateX = useSharedValue(item.x);
   const translateY = useSharedValue(item.y);
   const startPosition = useSharedValue({ x: 0, y: 0 });
@@ -53,15 +53,27 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
     .enabled(isEditMode)
     .onStart(() => {
       startPosition.value = { x: translateX.value, y: translateY.value };
-    })
-    .onUpdate((event) => {
-      translateX.value = startPosition.value.x + event.translationX;
-      translateY.value = startPosition.value.y + event.translationY;
+    })    .onUpdate((event) => {
+      const newX = startPosition.value.x + event.translationX;
+      const newY = startPosition.value.y + event.translationY;
+      
+      // Constrain to screen bounds during drag
+      const constrainedPos = constrainToScreenBoundsWorklet(newX, newY, item.size);
+      
+      translateX.value = constrainedPos.x;
+      translateY.value = constrainedPos.y;
     })
     .onEnd(() => {
       const finalX = translateX.value;
       const finalY = translateY.value;
-      runOnJS(onUpdatePosition)(item.id, finalX, finalY);
+      
+      // Ensure final position is within bounds
+      const constrainedPos = constrainToScreenBoundsWorklet(finalX, finalY, item.size);
+      
+      translateX.value = constrainedPos.x;
+      translateY.value = constrainedPos.y;
+      
+      runOnJS(onUpdatePosition)(item.id, constrainedPos.x, constrainedPos.y);
     });
 
   // Animated style for position

@@ -36,6 +36,7 @@ import {
 } from '../components/CustomJoystickScreen/utils';
 import { createGamepadLayout } from '../components/CustomJoystickScreen/gamepadLayout';
 import { hideNavigationBar, showNavigationBar } from '../utils/navigationBar';
+import { constrainToScreenBounds } from '../components/CustomJoystickScreen/screenBounds';
 
 const CustomJoystickScreen: React.FC = () => {
   // State management
@@ -81,7 +82,6 @@ const CustomJoystickScreen: React.FC = () => {
       };
     }, [])
   );
-
   /**
    * Loads initial data from storage
    */
@@ -92,7 +92,16 @@ const CustomJoystickScreen: React.FC = () => {
 
       const currentLayout = await loadCurrentLayout();
       if (currentLayout) {
-        setLayout(currentLayout);
+        // Constrain existing buttons to screen bounds
+        const constrainedLayout = currentLayout.map(button => {
+          const constrainedPos = constrainToScreenBounds(button.x, button.y, button.size);
+          return {
+            ...button,
+            x: constrainedPos.x,
+            y: constrainedPos.y,
+          };
+        });
+        setLayout(constrainedLayout);
       } else {
         // Use gamepad layout as default instead of simple layout
         setLayout(createGamepadLayout());
@@ -349,7 +358,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a0a0a', // Very dark background to match gamepad image
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    // Remove paddingTop since we're handling immersive mode
   },
 });
 

@@ -3,23 +3,23 @@
  * Helper functions for layout management and button operations
  */
 
-import { Dimensions } from 'react-native';
 import { JoystickButton, ButtonConfig } from './types';
 import { DEFAULT_BUTTON_CONFIG } from './constants';
-
-const screen = Dimensions.get('window');
+import { getSafeDefaultPosition, constrainToScreenBounds } from './screenBounds';
 
 /**
  * Creates a default layout with joystick and action buttons
  */
 export const createDefaultLayout = (): JoystickButton[] => {
+  const defaultPosition = getSafeDefaultPosition(60);
+  
   return [
     {
       id: '1',
       type: 'joystick',
       label: 'Movement',
-      x: 80.50,
-      y: screen.height - 200.25,
+      x: defaultPosition.x - 200,
+      y: defaultPosition.y + 100,
       size: 80,
       color: '#2563eb',
       config: { sensitivity: 50 }
@@ -28,8 +28,8 @@ export const createDefaultLayout = (): JoystickButton[] => {
       id: '2',
       type: 'action',
       label: 'Fire',
-      x: screen.width - 120.75,
-      y: screen.height - 200.25,
+      x: defaultPosition.x + 200,
+      y: defaultPosition.y + 100,
       size: 60,
       color: '#dc2626',
       config: { action: 'fire' }
@@ -38,8 +38,8 @@ export const createDefaultLayout = (): JoystickButton[] => {
       id: '3',
       type: 'toggle',
       label: 'Lights',
-      x: screen.width - 120.75,
-      y: screen.height - 120.50,
+      x: defaultPosition.x + 200,
+      y: defaultPosition.y - 100,
       size: 50,
       color: '#f59e0b',
       config: { action: 'lights' }
@@ -55,12 +55,14 @@ export const createNewButton = (
   label: string,
   config: ButtonConfig
 ): JoystickButton => {
+  const safePosition = getSafeDefaultPosition(config.size);
+  
   return {
     id: Date.now().toString(),
     type,
     label,
-    x: parseFloat((screen.width / 2 - 40).toFixed(2)),
-    y: parseFloat((screen.height / 2).toFixed(2)),
+    x: parseFloat(safePosition.x.toFixed(2)),
+    y: parseFloat(safePosition.y.toFixed(2)),
     size: config.size,
     color: config.color,
     config: {
@@ -73,7 +75,7 @@ export const createNewButton = (
 };
 
 /**
- * Updates a button's position with rounded values
+ * Updates a button's position with rounded values and bounds checking
  */
 export const updateButtonPosition = (
   layout: JoystickButton[],
@@ -81,12 +83,17 @@ export const updateButtonPosition = (
   x: number,
   y: number
 ): JoystickButton[] => {
-  const finalX = parseFloat(x.toFixed(2));
-  const finalY = parseFloat(y.toFixed(2));
-
-  return layout.map(item =>
-    item.id === buttonId ? { ...item, x: finalX, y: finalY } : item
-  );
+  return layout.map(item => {
+    if (item.id === buttonId) {
+      // Constrain to screen bounds
+      const constrainedPos = constrainToScreenBounds(x, y, item.size);
+      const finalX = parseFloat(constrainedPos.x.toFixed(2));
+      const finalY = parseFloat(constrainedPos.y.toFixed(2));
+      
+      return { ...item, x: finalX, y: finalY };
+    }
+    return item;
+  });
 };
 
 /**

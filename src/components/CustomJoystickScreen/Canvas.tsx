@@ -6,6 +6,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { JoystickButton } from './types';
+import { getUsableScreenDimensions } from './screenBounds';
 import AnimatedButton from './AnimatedButton';
 
 interface CanvasProps {
@@ -25,8 +26,38 @@ const Canvas: React.FC<CanvasProps> = ({
   onRemoveButton,
   onSliderValueChange,
 }) => {
+  const bounds = getUsableScreenDimensions();
+  
   return (
     <View style={styles.canvas}>
+      {/* Boundary indicator when in edit mode */}
+      {isEditMode && (
+        <View 
+          style={[
+            styles.boundaryIndicator,
+            {
+              left: bounds.minX,
+              top: bounds.minY,
+              width: bounds.width,
+              height: bounds.height,
+            }
+          ]} 
+        />
+      )}
+      
+      {/* Center point indicator for debugging (remove in production) */}
+      {isEditMode && (
+        <View 
+          style={[
+            styles.centerIndicator,
+            {
+              left: bounds.centerX - 5,
+              top: bounds.centerY - 5,
+            }
+          ]} 
+        />
+      )}
+      
       {layout.map((item, idx) => (
         <AnimatedButton
           key={item.id}
@@ -48,6 +79,22 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
     backgroundColor: '#0a0a0a', // Match the gamepad's dark background
+  },  boundaryIndicator: {
+    position: 'absolute',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    zIndex: 0,
+  },
+  centerIndicator: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    borderRadius: 5,
+    zIndex: 1,
   },
 });
 
