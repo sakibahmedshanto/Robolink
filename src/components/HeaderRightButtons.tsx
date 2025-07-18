@@ -294,14 +294,15 @@ const WifiModal = ({ visible, onClose }:{visible:boolean, onClose:() => void}) =
       visible={visible}
       onRequestClose={onClose}
     >
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <View style={{ width: 320, padding: 10, backgroundColor: 'white', borderRadius: 10 }}>
         {
-          udpStatus.ipAddress && 
+          udpStatus.ipAddress ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
             <Text style={{color: "black"}}>IP:</Text>
             <Text style={{color: "black"}}>{udpStatus.ipAddress}</Text>
           </View>
+          ) : null
         }
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
@@ -321,14 +322,14 @@ const WifiModal = ({ visible, onClose }:{visible:boolean, onClose:() => void}) =
               />
             </View>
             {
-              interval != `${udpStatus.intervalDelay}` &&
+              interval !== `${udpStatus.intervalDelay}` ?
               (
                 <MyButton
                  title='Save'
                  style={{ backgroundColor: '#ef53504f' }}
                  onPress={saveInterval}
                 />
-              )
+              ) : null
             }
           </View>
         <Button title="Close" onPress={onClose} color={primaryColor} />

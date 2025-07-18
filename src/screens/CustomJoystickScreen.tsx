@@ -35,15 +35,10 @@ import Animated, {
   useAnimatedStyle,
   runOnJS,
 } from 'react-native-reanimated';
-// @ts-ignore
 import DirectionButton from '../components/DirectionButton';
-// @ts-ignore
 import ActionButton from '../components/ActionButton';
-// @ts-ignore
 import ToggleButton from '../components/ToggleButton';
-// @ts-ignore
 import SliderButton from '../components/SliderButton';
-// @ts-ignore
 import VirtualJoystick from '../components/VirtualJoystick';
 
 const BUTTON_TYPES = [
@@ -105,10 +100,10 @@ const CustomJoystickScreen = () => {
 
   const loadCurrentLayout = async () => {
     try {
-      const currentLayout = await AsyncStorage.getItem('currentLayout');
-      if (currentLayout) {
+      const currentLayout = await AsyncStorage.getItem('currentLayout');      if (currentLayout) {
         setLayout(JSON.parse(currentLayout));
-      } else {        // Default layout
+      } else {
+        // Default layout
         setLayout([
           { 
             id: '1',
@@ -231,7 +226,6 @@ const CustomJoystickScreen = () => {
     setShowAddModal(false);
     saveCurrentLayout();
   };
-
   const removeButton = (id: string): void => {
     Alert.alert(
       'Confirm Delete',
@@ -243,23 +237,24 @@ const CustomJoystickScreen = () => {
           style: 'destructive',
           onPress: () => {
             setLayout(prevLayout => prevLayout.filter(item => item.id !== id));
-            setTimeout(() => saveCurrentLayout(), 0);
+            setTimeout(() => saveCurrentLayout(), 100);
           }
         }
       ]
     );
-  };
-
-  const updateButtonPosition = (id: string, x: number, y: number): void => {
+  };const updateButtonPosition = (id: string, x: number, y: number): void => {
     const snappedX = snapToGrid(x);
     const snappedY = snapToGrid(y);
+    
     setLayout(prevLayout => {
       const updated = prevLayout.map(item =>
         item.id === id ? { ...item, x: snappedX, y: snappedY } : item
       );
-      setTimeout(() => saveCurrentLayout(), 0);
       return updated;
     });
+    
+    // Save layout separately to avoid worklet issues
+    setTimeout(() => saveCurrentLayout(), 100);
   };
 
   const editButton = (index: number): void => {
@@ -332,7 +327,8 @@ const CustomJoystickScreen = () => {
               : layoutItem
           );
           setLayout(updatedLayout);
-          setTimeout(() => saveCurrentLayout(), 0);
+          // Use setTimeout to avoid potential worklet issues
+          setTimeout(() => saveCurrentLayout(), 100);
         }} />;
       case 'joystick':
         return <VirtualJoystick {...commonProps} />;
@@ -343,14 +339,10 @@ const CustomJoystickScreen = () => {
   const AnimatedButton = ({ item, index }: { item: JoystickButton; index: number }) => {
     const translateX = useSharedValue(item.x);
     const translateY = useSharedValue(item.y);
-    const startPosition = useSharedValue({ x: 0, y: 0 });
-
-    React.useEffect(() => {
+    const startPosition = useSharedValue({ x: 0, y: 0 });    React.useEffect(() => {
       translateX.value = item.x;
       translateY.value = item.y;
-    }, [item.x, item.y]);
-
-    const panGesture = Gesture.Pan()
+    }, [item.x, item.y, translateX, translateY]);const panGesture = Gesture.Pan()
       .enabled(isEditMode)
       .onStart(() => {
         startPosition.value = { x: translateX.value, y: translateY.value };
@@ -360,12 +352,10 @@ const CustomJoystickScreen = () => {
         translateY.value = startPosition.value.y + event.translationY;
       })
       .onEnd(() => {
-        const finalX = snapToGrid(translateX.value);
-        const finalY = snapToGrid(translateY.value);
+        const finalX = translateX.value;
+        const finalY = translateY.value;
         
-        translateX.value = finalX;
-        translateY.value = finalY;
-        
+        // Apply snapping on the JS thread
         runOnJS(updateButtonPosition)(item.id, finalX, finalY);
       });
 
@@ -459,7 +449,8 @@ const CustomJoystickScreen = () => {
 
             <Text style={styles.configLabel}>Size:</Text>
             <View style={styles.sliderContainer}>
-              <Text>{buttonConfig.size}</Text>              <SliderButton
+              <Text>{buttonConfig.size}</Text>
+              <SliderButton
                 value={buttonConfig.size}
                 minimumValue={30}
                 maximumValue={120}
@@ -483,7 +474,7 @@ const CustomJoystickScreen = () => {
               ))}
             </View>
 
-            {newType === 'direction' && (
+            {newType === 'direction' ? (
               <>
                 <Text style={styles.configLabel}>Direction:</Text>
                 <Picker
@@ -496,9 +487,10 @@ const CustomJoystickScreen = () => {
                   ))}
                 </Picker>
               </>
-            )}
+            )
+          : null}
 
-            {newType === 'action' && (
+            {newType === 'action' ? (
               <>
                 <Text style={styles.configLabel}>Action:</Text>
                 <Picker
@@ -511,9 +503,9 @@ const CustomJoystickScreen = () => {
                   ))}
                 </Picker>
               </>
-            )}
+            ): null}
 
-            {(newType === 'slider' || newType === 'joystick') && (
+            {(newType === 'slider' || newType === 'joystick') ? (
               <>
                 <Text style={styles.configLabel}>Sensitivity:</Text>
                 <View style={styles.sliderContainer}>
@@ -526,7 +518,7 @@ const CustomJoystickScreen = () => {
                   />
                 </View>
               </>
-            )}
+            ) : null}
 
             <Text style={styles.configLabel}>Custom Command:</Text>
             <TextInput
@@ -600,7 +592,7 @@ const CustomJoystickScreen = () => {
       </View>
 
       {/* Settings Panel */}
-      {isEditMode && (
+      {isEditMode ? (
         <View style={styles.settingsPanel}>
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Grid Snap:</Text>
@@ -644,8 +636,11 @@ const CustomJoystickScreen = () => {
               <Text style={styles.saveButtonText}>Save Layout</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      )}      {/* Canvas */}
+          </View>
+      )
+      : null}
+      
+      {/* Canvas */}
       <View style={styles.canvas}>
         {renderGrid()}
         
@@ -655,7 +650,7 @@ const CustomJoystickScreen = () => {
       </View>
 
       {/* Saved Layouts */}
-      {savedLayouts.length > 0 && (
+      {savedLayouts.length > 0 ? (
         <View style={styles.savedLayouts}>
           <Text style={styles.savedLayoutsTitle}>Saved Layouts:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -677,7 +672,7 @@ const CustomJoystickScreen = () => {
             ))}
           </ScrollView>
         </View>
-      )}
+      ) : null}
 
       {renderConfigModal()}
     </View>

@@ -1,15 +1,14 @@
 import { ReactNode } from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, StyleProp, TextStyle, View } from 'react-native';
 
-const MyButton = ({ title, onPress, style, textStyle, children }: { title?:string, onPress: () => void, style?: StyleProp<ViewStyle>, textStyle?: StyleProp<TextStyle>,
-  children?: ReactNode
+const MyButton = ({ title, onPress, style, textStyle, children }: { title?:string, onPress: () => void, style?: StyleProp<ViewStyle>, textStyle?: StyleProp<TextStyle>,  children?: ReactNode
  }) => (
   <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
     {
-      children && <View>{children}</View>
+      children ? <View>{children}</View> : null
     }
     {
-      title && <Text style={[styles.text, textStyle]}>{title}</Text>
+      title ? <Text style={[styles.text, textStyle]}>{title}</Text> : null
     }
   </TouchableOpacity>
 );
