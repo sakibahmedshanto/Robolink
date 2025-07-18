@@ -50,13 +50,13 @@ const styles = StyleSheet.create({
   },
   dts: {
     paddingTop: 16,
-  }
+  },
 });
 
 export default function GamepadViewer() {
   const [showSaveBtn, setShowSaveBtn] = useState(false);
   const [inputs, setInputs] = useState<{ [key: string]: any }>({});
-  const [ canEdit, setToggleEdit ] = useState(false);
+  const [canEdit, setToggleEdit] = useState(false);
   const [dts, setDTS] = useDTS();
   const [bluetoothStatus, _] = useBluetoothStatus();
   const [udpStatus, __] = useUdpStatus();
@@ -64,7 +64,7 @@ export default function GamepadViewer() {
   const dtsRef = useRef(dts);
   const btIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const udpIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { socket:udpSocket } = useUdpSocket();
+  const { socket: udpSocket } = useUdpSocket();
 
   useEffect(() => {
     inputsRef.current = inputs;
@@ -75,7 +75,8 @@ export default function GamepadViewer() {
   }, [dts]);
 
   useEffect(() => {
-    if (!bluetoothStatus.isConnected || !bluetoothStatus.enableSendOverBT) return;
+    if (!bluetoothStatus.isConnected || !bluetoothStatus.enableSendOverBT)
+      return;
     if (btIntervalRef.current) clearInterval(btIntervalRef.current);
 
     btIntervalRef.current = setInterval(() => {
@@ -87,8 +88,11 @@ export default function GamepadViewer() {
     return () => {
       if (btIntervalRef.current) clearInterval(btIntervalRef.current);
     };
-  }, [bluetoothStatus.isConnected, bluetoothStatus.enableSendOverBT, bluetoothStatus.intervalDelay]);
-
+  }, [
+    bluetoothStatus.isConnected,
+    bluetoothStatus.enableSendOverBT,
+    bluetoothStatus.intervalDelay,
+  ]);
 
   useEffect(() => {
     if (!udpStatus.enableSendOverUdp) {
@@ -99,22 +103,21 @@ export default function GamepadViewer() {
 
     udpIntervalRef.current = setInterval(() => {
       if (!udpStatus.enableSendOverUdp) {
-        if(udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+        if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
         return;
       }
-      
+
       const inputs = inputsRef.current;
       const dts = dtsRef.current;
       const result = getMessage(dts, inputs);
-      if(udpSocket) broadcastUdpData(udpSocket, result, udpStatus.port);
+      if (udpSocket) broadcastUdpData(udpSocket, result, udpStatus.port);
       else console.warn('UDP socket not available');
     }, udpStatus.intervalDelay || 100);
 
     return () => {
       if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
-    }
-  
-  }, [udpStatus.enableSendOverUdp, udpStatus.intervalDelay, udpStatus.port])
+    };
+  }, [udpStatus.enableSendOverUdp, udpStatus.intervalDelay, udpStatus.port]);
 
   useEffect(() => {
     const initialInputs = {
@@ -123,17 +126,14 @@ export default function GamepadViewer() {
     console.log('GamepadViewer initialInputs', initialInputs);
     setDTS(initialInputs);
 
-    AsyncStorage.getItem('dts')
-      .then((data) => {
-        if (data) {
-          const parsedData = JSON.parse(data);
-          setDTS(parsedData);
-          setInputs(prev => ({ ...prev, ...parsedData }));
-        } else setDTS(initialInputs);
-
-      });
+    AsyncStorage.getItem('dts').then(data => {
+      if (data) {
+        const parsedData = JSON.parse(data);
+        setDTS(parsedData);
+        setInputs(prev => ({ ...prev, ...parsedData }));
+      } else setDTS(initialInputs);
+    });
   }, []);
-
 
   useEffect(() => {
     const subs = [
@@ -147,7 +147,7 @@ export default function GamepadViewer() {
 
   const onToggleCheck = () => {
     setToggleEdit(prev => !prev);
-  }
+  };
 
   const getMessage = (dts: any, inputs: any) => {
     let result = `<${Object.keys(dts).length} `;
@@ -156,7 +156,7 @@ export default function GamepadViewer() {
     }
     result += '>';
     return result;
-  }
+  };
   const updateInputs = (evt: { [key: string]: any }) => {
     setInputs(prev => ({ ...prev, ...evt }));
   };
@@ -176,7 +176,7 @@ export default function GamepadViewer() {
   const saveDTS = async () => {
     await AsyncStorage.setItem('dts', JSON.stringify(dts));
     setShowSaveBtn(false);
-  }
+  };
 
   const renderButton = (key: string) => {
     return (
@@ -200,12 +200,19 @@ export default function GamepadViewer() {
           </Text>
           <Text style={styles.value}> {inputs[key] || 0}</Text>
         </View>
-        <CheckBox tintColors={{ true: canEdit ? primaryColor : "#ffffff33", false: 'white' }} onFillColor={canEdit ? primaryColor : "#ccc"} disabled={!canEdit} value={dts[key] || dts[key] == 0} onChange={() => toggleDTS(key)}
+        <CheckBox
+          tintColors={{
+            true: canEdit ? primaryColor : '#ffffff33',
+            false: 'white',
+          }}
+          onFillColor={canEdit ? primaryColor : '#ccc'}
+          disabled={!canEdit}
+          value={dts[key] || dts[key] == 0}
+          onChange={() => toggleDTS(key)}
         />
       </View>
     );
   };
-
 
   const renderAxis = (key: string) => {
     return (
@@ -232,7 +239,15 @@ export default function GamepadViewer() {
           </Text>
           <Text style={styles.value}> {inputs[key] || 0}</Text>
         </View>
-        <CheckBox tintColors={{ true: canEdit ? primaryColor : "#ffffff33", false: 'white' }} onFillColor={canEdit ? primaryColor : "#ccc"} disabled={!canEdit} value={dts[key] || dts[key] == 0} onChange={() => toggleDTS(key)}
+        <CheckBox
+          tintColors={{
+            true: canEdit ? primaryColor : '#ffffff33',
+            false: 'white',
+          }}
+          onFillColor={canEdit ? primaryColor : '#ccc'}
+          disabled={!canEdit}
+          value={dts[key] || dts[key] == 0}
+          onChange={() => toggleDTS(key)}
         />
       </View>
     );
@@ -240,23 +255,49 @@ export default function GamepadViewer() {
 
   return (
     <ScrollView>
-      <TopHeaderButtons
-        enableCheck={canEdit}
-        onCheckPress={onToggleCheck}
-      />
+      <TopHeaderButtons enableCheck={canEdit} onCheckPress={onToggleCheck} />
       <View style={styles.container}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <Text style={styles.sectionTitle}>Buttons</Text>
-          {
-            showSaveBtn && <MyButton title='Save' onPress={saveDTS} style={{backgroundColor: "#ff0"}} />
-          }
+          {showSaveBtn ? (
+            <MyButton
+              title="Save"
+              onPress={saveDTS}
+              style={{ backgroundColor: '#ff0' }}
+            />
+          ) : null}
         </View>
         <View
           style={{
-            flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'stretch',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'stretch',
           }}
         >
-          {['96', '97', '98', '99', '100', '101', '102', '103', '104', '105', '106', '107', '108', '109', '110'].map(renderButton)}
+          {[
+            '96',
+            '97',
+            '98',
+            '99',
+            '100',
+            '101',
+            '102',
+            '103',
+            '104',
+            '105',
+            '106',
+            '107',
+            '108',
+            '109',
+            '110',
+          ].map(renderButton)}
         </View>
 
         <Text style={styles.sectionTitle}>Axes</Text>

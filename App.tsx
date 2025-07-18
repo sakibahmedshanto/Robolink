@@ -7,6 +7,8 @@
 
 import { createStaticNavigation, } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import GamepadInputScreen from './src/screens/GamepadInputScreen';
 import CustomJoystickScreen from './src/screens/CustomJoystickScreen';
 import HeaderRightButtons from './src/components/HeaderRightButtons';
@@ -111,9 +113,8 @@ function App() {
       BluetoothSerial.removeListener('error');
     }
   }, [])
-
   const initializeBluetoothStatus = async () => {
-    let enableBtTransmission = null;
+    let enableBtTransmission: string | null = null;
     let intervalDelay = 100; // Default value
     try {
       enableBtTransmission = await AsyncStorage.getItem('enableBtTransmission');
@@ -151,8 +152,11 @@ function App() {
       console.error('Error loading Bluetooth status from storage:', error);
     }
   }
-
-  return <Navigation />
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Navigation />
+    </GestureHandlerRootView>
+  );;
 }
 
 
