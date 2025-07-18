@@ -25,7 +25,6 @@ import {
   Alert,
   ScrollView,
   Modal,
-  Switch,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
@@ -69,15 +68,14 @@ const CustomJoystickScreen = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
   const [currentLayoutName, setCurrentLayoutName] = useState('Default');
-  const [isEditMode, setIsEditMode] = useState(false);  const [gridSnap, setGridSnap] = useState(false);
-  const [gridSize, setGridSize] = useState(20);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   // Button configuration states
   const [buttonConfig, setButtonConfig] = useState({
     direction: 'up',
     action: 'fire',
     size: 60,
-    color: '#007AFF',
+    color: '#2563eb',
     sensitivity: 50,
     customCommand: '',
   });
@@ -100,7 +98,8 @@ const CustomJoystickScreen = () => {
 
   const loadCurrentLayout = async () => {
     try {
-      const currentLayout = await AsyncStorage.getItem('currentLayout');      if (currentLayout) {
+      const currentLayout = await AsyncStorage.getItem('currentLayout');
+      if (currentLayout) {
         setLayout(JSON.parse(currentLayout));
       } else {
         // Default layout
@@ -112,7 +111,7 @@ const CustomJoystickScreen = () => {
             x: 80.50, 
             y: screen.height - 200.25,
             size: 80,
-            color: '#007AFF',
+            color: '#2563eb',
             config: { sensitivity: 50 }
           },
           { 
@@ -122,7 +121,7 @@ const CustomJoystickScreen = () => {
             x: screen.width - 120.75, 
             y: screen.height - 200.25,
             size: 60,
-            color: '#FF3B30',
+            color: '#dc2626',
             config: { action: 'fire' }
           },
           { 
@@ -132,7 +131,7 @@ const CustomJoystickScreen = () => {
             x: screen.width - 120.75, 
             y: screen.height - 120.50,
             size: 50,
-            color: '#FF9500',
+            color: '#f59e0b',
             config: { action: 'lights' }
           },
         ]);
@@ -194,10 +193,6 @@ const CustomJoystickScreen = () => {
       ]
     );
   };
-  const snapToGrid = (value: number) => {
-    if (!gridSnap) return parseFloat(value.toFixed(2));
-    return Math.round(value / gridSize) * gridSize;
-  };
 
   const addButton = (): void => {
     if (!newLabel.trim()) {
@@ -209,8 +204,8 @@ const CustomJoystickScreen = () => {
       id: Date.now().toString(),
       type: newType,
       label: newLabel,
-      x: snapToGrid(screen.width / 2 - 40),
-      y: snapToGrid(screen.height / 2),
+      x: parseFloat((screen.width / 2 - 40).toFixed(2)),
+      y: parseFloat((screen.height / 2).toFixed(2)),
       size: buttonConfig.size,
       color: buttonConfig.color,
       config: {
@@ -226,6 +221,7 @@ const CustomJoystickScreen = () => {
     setShowAddModal(false);
     saveCurrentLayout();
   };
+
   const removeButton = (id: string): void => {
     Alert.alert(
       'Confirm Delete',
@@ -242,18 +238,19 @@ const CustomJoystickScreen = () => {
         }
       ]
     );
-  };const updateButtonPosition = (id: string, x: number, y: number): void => {
-    const snappedX = snapToGrid(x);
-    const snappedY = snapToGrid(y);
+  };
+
+  const updateButtonPosition = (id: string, x: number, y: number): void => {
+    const finalX = parseFloat(x.toFixed(2));
+    const finalY = parseFloat(y.toFixed(2));
     
     setLayout(prevLayout => {
       const updated = prevLayout.map(item =>
-        item.id === id ? { ...item, x: snappedX, y: snappedY } : item
+        item.id === id ? { ...item, x: finalX, y: finalY } : item
       );
       return updated;
     });
     
-    // Save layout separately to avoid worklet issues
     setTimeout(() => saveCurrentLayout(), 100);
   };
 
@@ -266,7 +263,7 @@ const CustomJoystickScreen = () => {
       direction: button.config?.direction || 'up',
       action: button.config?.action || 'fire',
       size: button.size || 60,
-      color: button.color || '#007AFF',
+      color: button.color || '#2563eb',
       sensitivity: button.config?.sensitivity || 50,
       customCommand: button.config?.customCommand || '',
     });
@@ -304,6 +301,7 @@ const CustomJoystickScreen = () => {
     setNewLabel('');
     saveCurrentLayout();
   };
+
   const renderButtonComponent = (item: JoystickButton): React.ReactElement => {
     const commonProps = {
       label: item.label,
@@ -318,16 +316,15 @@ const CustomJoystickScreen = () => {
       case 'action':
         return <ActionButton {...commonProps} />;
       case 'toggle':
-        return <ToggleButton {...commonProps} />;      case 'slider':
+        return <ToggleButton {...commonProps} />;
+      case 'slider':
         return <SliderButton {...commonProps} value={item.config?.sensitivity || 50} onValueChange={(value: number) => {
-          // Update the button's sensitivity in the layout
           const updatedLayout = layout.map(layoutItem =>
             layoutItem.id === item.id 
               ? { ...layoutItem, config: { ...layoutItem.config, sensitivity: value } }
               : layoutItem
           );
           setLayout(updatedLayout);
-          // Use setTimeout to avoid potential worklet issues
           setTimeout(() => saveCurrentLayout(), 100);
         }} />;
       case 'joystick':
@@ -335,14 +332,20 @@ const CustomJoystickScreen = () => {
       default:
         return <ActionButton {...commonProps} />;
     }
-  };  // Animated Button Component using Gesture Handler
+  };
+
+  // Animated Button Component using Gesture Handler
   const AnimatedButton = ({ item, index }: { item: JoystickButton; index: number }) => {
     const translateX = useSharedValue(item.x);
     const translateY = useSharedValue(item.y);
-    const startPosition = useSharedValue({ x: 0, y: 0 });    React.useEffect(() => {
+    const startPosition = useSharedValue({ x: 0, y: 0 });
+
+    React.useEffect(() => {
       translateX.value = item.x;
       translateY.value = item.y;
-    }, [item.x, item.y, translateX, translateY]);const panGesture = Gesture.Pan()
+    }, [item.x, item.y, translateX, translateY]);
+
+    const panGesture = Gesture.Pan()
       .enabled(isEditMode)
       .onStart(() => {
         startPosition.value = { x: translateX.value, y: translateY.value };
@@ -355,7 +358,6 @@ const CustomJoystickScreen = () => {
         const finalX = translateX.value;
         const finalY = translateY.value;
         
-        // Apply snapping on the JS thread
         runOnJS(updateButtonPosition)(item.id, finalX, finalY);
       });
 
@@ -391,28 +393,6 @@ const CustomJoystickScreen = () => {
     );
   };
 
-  const renderGrid = () => {
-    if (!gridSnap) return null;
-    
-    const lines = [];
-    for (let i = 0; i <= screen.width; i += gridSize) {
-      lines.push(
-        <View
-          key={`v-${i}`}
-          style={[styles.gridLine, { left: i, height: screen.height }]}
-        />
-      );
-    }
-    for (let i = 0; i <= screen.height; i += gridSize) {
-      lines.push(
-        <View
-          key={`h-${i}`}
-          style={[styles.gridLine, { top: i, width: screen.width }]}
-        />
-      );
-    }
-    return lines;
-  };
   const renderConfigModal = () => {
     const ModalContent = gestureHandlerRootHOC(() => (
       <View style={styles.modalOverlay}>
@@ -449,7 +429,7 @@ const CustomJoystickScreen = () => {
 
             <Text style={styles.configLabel}>Size:</Text>
             <View style={styles.sliderContainer}>
-              <Text>{buttonConfig.size}</Text>
+              <Text style={styles.sliderValue}>{buttonConfig.size}</Text>
               <SliderButton
                 value={buttonConfig.size}
                 minimumValue={30}
@@ -461,7 +441,7 @@ const CustomJoystickScreen = () => {
 
             <Text style={styles.configLabel}>Color:</Text>
             <View style={styles.colorPicker}>
-              {['#007AFF', '#FF3B30', '#FF9500', '#34C759', '#5856D6', '#AF52DE'].map(color => (
+              {['#2563eb', '#dc2626', '#f59e0b', '#16a34a', '#7c3aed', '#e11d48', '#0891b2', '#ea580c'].map(color => (
                 <TouchableOpacity
                   key={color}
                   style={[
@@ -474,7 +454,7 @@ const CustomJoystickScreen = () => {
               ))}
             </View>
 
-            {newType === 'direction' ? (
+            {newType === 'direction' && (
               <>
                 <Text style={styles.configLabel}>Direction:</Text>
                 <Picker
@@ -487,10 +467,9 @@ const CustomJoystickScreen = () => {
                   ))}
                 </Picker>
               </>
-            )
-          : null}
+            )}
 
-            {newType === 'action' ? (
+            {newType === 'action' && (
               <>
                 <Text style={styles.configLabel}>Action:</Text>
                 <Picker
@@ -503,13 +482,14 @@ const CustomJoystickScreen = () => {
                   ))}
                 </Picker>
               </>
-            ): null}
+            )}
 
-            {(newType === 'slider' || newType === 'joystick') ? (
+            {(newType === 'slider' || newType === 'joystick') && (
               <>
                 <Text style={styles.configLabel}>Sensitivity:</Text>
                 <View style={styles.sliderContainer}>
-                  <Text>{buttonConfig.sensitivity}</Text>                  <SliderButton
+                  <Text style={styles.sliderValue}>{buttonConfig.sensitivity}</Text>
+                  <SliderButton
                     value={buttonConfig.sensitivity}
                     minimumValue={1}
                     maximumValue={100}
@@ -518,7 +498,7 @@ const CustomJoystickScreen = () => {
                   />
                 </View>
               </>
-            ) : null}
+            )}
 
             <Text style={styles.configLabel}>Custom Command:</Text>
             <TextInput
@@ -592,65 +572,36 @@ const CustomJoystickScreen = () => {
       </View>
 
       {/* Settings Panel */}
-      {isEditMode ? (
+      {isEditMode && (
         <View style={styles.settingsPanel}>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Grid Snap:</Text>
-            <Switch
-              value={gridSnap}
-              onValueChange={setGridSnap}
-            />
-          </View>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Grid Size:</Text>
-            <View style={styles.gridSizeButtons}>
-              {[10, 20, 30].map(size => (
-                <TouchableOpacity
-                  key={size}
-                  style={[
-                    styles.gridSizeButton,
-                    gridSize === size && styles.gridSizeButtonActive,
-                  ]}
-                  onPress={() => setGridSize(size)}
-                >
-                  <Text style={styles.gridSizeButtonText}>{size}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-          <View style={styles.settingRow}>
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={() => {
-                Alert.prompt(
-                  'Save Layout',
-                  'Enter a name for this layout:',
-                  (name) => {
-                    if (name && name.trim()) {
-                      saveLayoutWithName(name.trim());
-                    }
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={() => {
+              Alert.prompt(
+                'Save Layout',
+                'Enter a name for this layout:',
+                (name) => {
+                  if (name && name.trim()) {
+                    saveLayoutWithName(name.trim());
                   }
-                );
-              }}
-            >
-              <Text style={styles.saveButtonText}>Save Layout</Text>
-            </TouchableOpacity>
-          </View>
-          </View>
-      )
-      : null}
+                }
+              );
+            }}
+          >
+            <Text style={styles.saveButtonText}>Save Layout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       
       {/* Canvas */}
       <View style={styles.canvas}>
-        {renderGrid()}
-        
         {layout.map((item, idx) => (
           <AnimatedButton key={item.id} item={item} index={idx} />
         ))}
       </View>
 
       {/* Saved Layouts */}
-      {savedLayouts.length > 0 ? (
+      {savedLayouts.length > 0 && (
         <View style={styles.savedLayouts}>
           <Text style={styles.savedLayoutsTitle}>Saved Layouts:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -672,7 +623,7 @@ const CustomJoystickScreen = () => {
             ))}
           </ScrollView>
         </View>
-      ) : null}
+      )}
 
       {renderConfigModal()}
     </View>
@@ -682,155 +633,164 @@ const CustomJoystickScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1e293b',
   },
   headerControls: {
     flexDirection: 'row',
     gap: 8,
   },
   headerButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#2563eb',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   headerButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14,
   },
   settingsPanel: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderBottomColor: '#e2e8f0',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  settingLabel: {
-    fontSize: 16,
-    color: '#333',
-  },
-  gridSizeButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  gridSizeButton: {
-    backgroundColor: '#e0e0e0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  gridSizeButtonActive: {
-    backgroundColor: '#007AFF',
-  },
-  gridSizeButtonText: {
-    color: '#333',
-    fontWeight: 'bold',
   },
   saveButton: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: '#16a34a',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
+    shadowColor: '#16a34a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   saveButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14,
   },
   canvas: {
     flex: 1,
     position: 'relative',
-  },
-  gridLine: {
-    position: 'absolute',
-    backgroundColor: '#e0e0e0',
-    opacity: 0.3,
+    backgroundColor: '#f8fafc',
   },
   draggableContainer: {
     alignItems: 'center',
   },
   editControls: {
     flexDirection: 'row',
-    marginTop: 4,
-    gap: 4,
+    marginTop: 8,
+    gap: 6,
   },
   editButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 1,
   },
   editButtonText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
   },
   removeBtn: {
-    backgroundColor: '#FF3B30',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: '#dc2626',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    shadowColor: '#dc2626',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 1,
   },
   removeBtnText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   savedLayouts: {
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: '#e2e8f0',
   },
   savedLayoutsTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#1e293b',
   },
   savedLayoutItem: {
     flexDirection: 'row',
-    marginRight: 8,
+    marginRight: 12,
     alignItems: 'center',
   },
   savedLayoutButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   savedLayoutButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14,
   },
   deleteSavedLayout: {
-    backgroundColor: '#FF3B30',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 4,
+    backgroundColor: '#dc2626',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 6,
+    shadowColor: '#dc2626',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 1,
   },
   deleteSavedLayoutText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 12,
   },
   modalOverlay: {
     flex: 1,
@@ -839,33 +799,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
     width: '90%',
     maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 20,
     textAlign: 'center',
-    color: '#333',
+    color: '#1e293b',
   },
   configLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 8,
-    marginTop: 12,
-    color: '#333',
+    marginTop: 16,
+    color: '#374151',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#d1d5db',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f9fafb',
+    fontSize: 16,
+    color: '#374151',
   },
   typePicker: {
     flexDirection: 'row',
@@ -876,68 +843,94 @@ const styles = StyleSheet.create({
   typeButton: {
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f3f4f6',
     alignItems: 'center',
     minWidth: 70,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   typeButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#dbeafe',
+    borderColor: '#2563eb',
   },
   typeIcon: {
     fontSize: 18,
     marginBottom: 4,
   },
   typeButtonText: {
-    color: '#333',
-    fontWeight: 'bold',
+    color: '#374151',
+    fontWeight: '600',
     fontSize: 12,
   },
   sliderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 8,
+  },
+  sliderValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    minWidth: 30,
   },
   colorPicker: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginBottom: 8,
   },
   colorOption: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
+    borderRadius: 8,
+    borderWidth: 3,
     borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   colorOptionSelected: {
-    borderColor: '#333',
+    borderColor: '#1e293b',
+    shadowColor: '#1e293b',
+    shadowOpacity: 0.3,
   },
   picker: {
     height: 50,
     marginBottom: 8,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: 24,
     gap: 12,
   },
   modalButton: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f3f4f6',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   modalButtonPrimary: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#2563eb',
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   modalButtonText: {
-    color: '#333',
-    fontWeight: 'bold',
+    color: '#374151',
+    fontWeight: '600',
+    fontSize: 16,
   },
   modalButtonPrimaryText: {
-    color: '#fff',
+    color: '#ffffff',
   },
 });
 
