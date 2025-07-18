@@ -29,8 +29,12 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
-// @ts-ignore
-import Draggable from 'react-native-draggable';
+import { Gesture, GestureDetector, gestureHandlerRootHOC } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  runOnJS,
+} from 'react-native-reanimated';
 // @ts-ignore
 import DirectionButton from '../components/DirectionButton';
 // @ts-ignore
@@ -70,8 +74,7 @@ const CustomJoystickScreen = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
   const [currentLayoutName, setCurrentLayoutName] = useState('Default');
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [gridSnap, setGridSnap] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);  const [gridSnap, setGridSnap] = useState(false);
   const [gridSize, setGridSize] = useState(20);
   
   // Button configuration states
@@ -105,15 +108,14 @@ const CustomJoystickScreen = () => {
       const currentLayout = await AsyncStorage.getItem('currentLayout');
       if (currentLayout) {
         setLayout(JSON.parse(currentLayout));
-      } else {
-        // Default layout
+      } else {        // Default layout
         setLayout([
           { 
             id: '1',
             type: 'joystick', 
             label: 'Movement', 
-            x: 80, 
-            y: screen.height - 200,
+            x: 80.50, 
+            y: screen.height - 200.25,
             size: 80,
             color: '#007AFF',
             config: { sensitivity: 50 }
@@ -122,8 +124,8 @@ const CustomJoystickScreen = () => {
             id: '2',
             type: 'action', 
             label: 'Fire', 
-            x: screen.width - 120, 
-            y: screen.height - 200,
+            x: screen.width - 120.75, 
+            y: screen.height - 200.25,
             size: 60,
             color: '#FF3B30',
             config: { action: 'fire' }
@@ -132,8 +134,8 @@ const CustomJoystickScreen = () => {
             id: '3',
             type: 'toggle', 
             label: 'Lights', 
-            x: screen.width - 120, 
-            y: screen.height - 120,
+            x: screen.width - 120.75, 
+            y: screen.height - 120.50,
             size: 50,
             color: '#FF9500',
             config: { action: 'lights' }
@@ -197,9 +199,8 @@ const CustomJoystickScreen = () => {
       ]
     );
   };
-
   const snapToGrid = (value: number) => {
-    if (!gridSnap) return value;
+    if (!gridSnap) return parseFloat(value.toFixed(2));
     return Math.round(value / gridSize) * gridSize;
   };
 
@@ -308,7 +309,6 @@ const CustomJoystickScreen = () => {
     setNewLabel('');
     saveCurrentLayout();
   };
-
   const renderButtonComponent = (item: JoystickButton): React.ReactElement => {
     const commonProps = {
       label: item.label,
@@ -323,14 +323,82 @@ const CustomJoystickScreen = () => {
       case 'action':
         return <ActionButton {...commonProps} />;
       case 'toggle':
-        return <ToggleButton {...commonProps} />;
-      case 'slider':
-        return <SliderButton {...commonProps} />;
+        return <ToggleButton {...commonProps} />;      case 'slider':
+        return <SliderButton {...commonProps} value={item.config?.sensitivity || 50} onValueChange={(value: number) => {
+          // Update the button's sensitivity in the layout
+          const updatedLayout = layout.map(layoutItem =>
+            layoutItem.id === item.id 
+              ? { ...layoutItem, config: { ...layoutItem.config, sensitivity: value } }
+              : layoutItem
+          );
+          setLayout(updatedLayout);
+          setTimeout(() => saveCurrentLayout(), 0);
+        }} />;
       case 'joystick':
         return <VirtualJoystick {...commonProps} />;
       default:
         return <ActionButton {...commonProps} />;
     }
+  };  // Animated Button Component using Gesture Handler
+  const AnimatedButton = ({ item, index }: { item: JoystickButton; index: number }) => {
+    const translateX = useSharedValue(item.x);
+    const translateY = useSharedValue(item.y);
+    const startPosition = useSharedValue({ x: 0, y: 0 });
+
+    React.useEffect(() => {
+      translateX.value = item.x;
+      translateY.value = item.y;
+    }, [item.x, item.y]);
+
+    const panGesture = Gesture.Pan()
+      .enabled(isEditMode)
+      .onStart(() => {
+        startPosition.value = { x: translateX.value, y: translateY.value };
+      })
+      .onUpdate((event) => {
+        translateX.value = startPosition.value.x + event.translationX;
+        translateY.value = startPosition.value.y + event.translationY;
+      })
+      .onEnd(() => {
+        const finalX = snapToGrid(translateX.value);
+        const finalY = snapToGrid(translateY.value);
+        
+        translateX.value = finalX;
+        translateY.value = finalY;
+        
+        runOnJS(updateButtonPosition)(item.id, finalX, finalY);
+      });
+
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+      ],
+    }));
+
+    return (
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.draggableContainer, animatedStyle, { position: 'absolute', left: 0, top: 0 }]}>
+          {renderButtonComponent(item)}
+          {isEditMode && (
+            <View style={styles.editControls}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => editButton(index)}
+              >
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.removeBtn}
+                onPress={() => removeButton(item.id)}
+              >
+                <Text style={styles.removeBtnText}>×</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Animated.View>
+      </GestureDetector>
+    );
   };
 
   const renderGrid = () => {
@@ -355,17 +423,8 @@ const CustomJoystickScreen = () => {
     }
     return lines;
   };
-
-  const renderConfigModal = () => (
-    <Modal
-      visible={showAddModal || showEditModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => {
-        setShowAddModal(false);
-        setShowEditModal(false);
-      }}
-    >
+  const renderConfigModal = () => {
+    const ModalContent = gestureHandlerRootHOC(() => (
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <ScrollView>
@@ -400,12 +459,12 @@ const CustomJoystickScreen = () => {
 
             <Text style={styles.configLabel}>Size:</Text>
             <View style={styles.sliderContainer}>
-              <Text>{buttonConfig.size}</Text>
-              <SliderButton
+              <Text>{buttonConfig.size}</Text>              <SliderButton
                 value={buttonConfig.size}
                 minimumValue={30}
                 maximumValue={120}
                 onValueChange={(value: number) => setButtonConfig({...buttonConfig, size: value})}
+                label="Size"
               />
             </View>
 
@@ -458,12 +517,12 @@ const CustomJoystickScreen = () => {
               <>
                 <Text style={styles.configLabel}>Sensitivity:</Text>
                 <View style={styles.sliderContainer}>
-                  <Text>{buttonConfig.sensitivity}</Text>
-                  <SliderButton
+                  <Text>{buttonConfig.sensitivity}</Text>                  <SliderButton
                     value={buttonConfig.sensitivity}
                     minimumValue={1}
                     maximumValue={100}
                     onValueChange={(value: number) => setButtonConfig({...buttonConfig, sensitivity: value})}
+                    label="Sensitivity"
                   />
                 </View>
               </>
@@ -500,8 +559,22 @@ const CustomJoystickScreen = () => {
           </ScrollView>
         </View>
       </View>
-    </Modal>
-  );
+    ));
+
+    return (
+      <Modal
+        visible={showAddModal || showEditModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowAddModal(false);
+          setShowEditModal(false);
+        }}
+      >
+        <ModalContent />
+      </Modal>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -572,46 +645,12 @@ const CustomJoystickScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-      )}
-
-      {/* Canvas */}
+      )}      {/* Canvas */}
       <View style={styles.canvas}>
         {renderGrid()}
         
         {layout.map((item, idx) => (
-          <Draggable
-            key={item.id}
-            x={item.x}
-            y={item.y}
-            disabled={!isEditMode}
-            onDrag={(event, gestureState) => {}}    
-            onPressOut={() => {}}
-            onLongPress={() => {}}
-            onRelease={()=>{}}
-            onDragRelease={(event, gestureState, bounds) => {
-              updateButtonPosition(item.id, bounds.left, bounds.top);
-            }}
-          >
-            <View style={styles.draggableContainer}>
-              {renderButtonComponent(item)}
-              {isEditMode && (
-                <View style={styles.editControls}>
-                  <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={() => editButton(idx)}
-                  >
-                    <Text style={styles.editButtonText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.removeBtn}
-                    onPress={() => removeButton(item.id)}
-                  >
-                    <Text style={styles.removeBtnText}>×</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          </Draggable>
+          <AnimatedButton key={item.id} item={item} index={idx} />
         ))}
       </View>
 

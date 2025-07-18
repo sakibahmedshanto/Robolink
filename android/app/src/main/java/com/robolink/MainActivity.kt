@@ -1,12 +1,14 @@
 package com.robolink
 
 import com.facebook.react.ReactActivity
+import com.facebook.react.ReactActivityDelegate
+import com.facebook.react.ReactRootView
 import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.bridge.WritableMap
 import android.view.KeyEvent
 import android.view.InputDevice
 import android.view.MotionEvent
-import android.os.Bundle;
+import android.os.Bundle
 
 import com.robolink.globalkeyevent.GlobalKeyEventModule
 
@@ -18,9 +20,13 @@ class MainActivity : ReactActivity() {
     override fun getMainComponentName(): String {
         return "robolink"
     }
-
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(null)
+    }
+
+    override fun createReactActivityDelegate(): ReactActivityDelegate {
+        return ReactActivityDelegate(this, mainComponentName)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
