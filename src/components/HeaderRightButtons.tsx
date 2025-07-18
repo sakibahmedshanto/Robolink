@@ -41,14 +41,14 @@ const HeaderRightButtons = () => {
   return (
   <View style={styles.container}>
     <Icon.Button
-        backgroundColor="#D72638"
         color={bluetoothStatus.isEnabled ? "#00ff47" : "#fff"}
+        backgroundColor="transparent"
         name={bluetoothStatus.isConnected ? "bluetooth-connected" : "bluetooth"}
         onPress={() => setButtonPressed('bluetooth')}
     />
     <Icon.Button
         name="wifi"
-        backgroundColor="#D72638"
+        backgroundColor="transparent"
         // color={buttonPressed == "wifi" ? "#00ff47" : "#fff"}
         onPress={() => setButtonPressed('wifi')}
     />

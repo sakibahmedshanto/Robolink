@@ -11,8 +11,8 @@ export const broadcastUdpData = (udpSocket: UdpSocket, data: any, port:number) =
   const targetPort = parseInt(port as any) || 1234;
   try {
       udpSocket.send(message, 0, message.length, targetPort, '255.255.255.255', (err) => {
-          if (err) console.error('UDP send error:', err);
-          else console.log('UDP message broadcasted:', data);
+          // if (err) console.error('UDP send error:', err);
+          // else console.log('UDP message broadcasted:', data);
       });
   } catch (error) {
     console.log(error);

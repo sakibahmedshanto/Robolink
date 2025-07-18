@@ -2,16 +2,17 @@
  * Custom Joystick Screen
  * Main screen component for creating and managing custom joystick layouts
  * Allows users to add, edit, position, and save custom button layouts
+ * Fixed to horizontal orientation with gamepad-style layout
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, StatusBar } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 // Component imports
 import Header from '../components/CustomJoystickScreen/Header';
 import SettingsPanel from '../components/CustomJoystickScreen/SettingsPanel';
 import Canvas from '../components/CustomJoystickScreen/Canvas';
-import SavedLayouts from '../components/CustomJoystickScreen/SavedLayouts';
 import ButtonConfigModal from '../components/CustomJoystickScreen/ButtonConfigModal';
 import SaveLayoutModal from '../components/CustomJoystickScreen/SaveLayoutModal';
 
@@ -34,6 +35,7 @@ import {
   removeButton,
   getButtonConfig,
 } from '../components/CustomJoystickScreen/utils';
+import { createGamepadLayout } from '../components/CustomJoystickScreen/gamepadLayout';
 
 const CustomJoystickScreen: React.FC = () => {
   // State management
@@ -44,7 +46,7 @@ const CustomJoystickScreen: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
-  const [currentLayoutName, setCurrentLayoutName] = useState<string>('Default');
+  const [currentLayoutName, setCurrentLayoutName] = useState<string>('Gamepad');
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
   const [saveLayoutName, setSaveLayoutName] = useState<string>('');
@@ -56,6 +58,19 @@ const CustomJoystickScreen: React.FC = () => {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  // Handle orientation on screen focus
+  useFocusEffect(
+    React.useCallback(() => {
+      // Lock to landscape orientation
+      StatusBar.setHidden(true);
+      
+      // Cleanup function to reset orientation when leaving screen
+      return () => {
+        StatusBar.setHidden(false);
+      };
+    }, [])
+  );
 
   /**
    * Loads initial data from storage
@@ -69,11 +84,12 @@ const CustomJoystickScreen: React.FC = () => {
       if (currentLayout) {
         setLayout(currentLayout);
       } else {
-        setLayout(createDefaultLayout());
+        // Use gamepad layout as default instead of simple layout
+        setLayout(createGamepadLayout());
       }
     } catch (error) {
       console.error('Error loading initial data:', error);
-      setLayout(createDefaultLayout());
+      setLayout(createGamepadLayout());
     }
   };
 
@@ -232,6 +248,27 @@ const CustomJoystickScreen: React.FC = () => {
     setLayout(updatedLayout);
     setTimeout(() => handleSaveCurrentLayout(), 100);
   };
+  /**
+   * Resets layout to default gamepad layout
+   */
+  const handleResetToGamepad = () => {
+    Alert.alert(
+      'Reset Layout',
+      'Are you sure you want to reset to the default gamepad layout? This will remove all custom buttons.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: () => {
+            setLayout(createGamepadLayout());
+            setCurrentLayoutName('Gamepad');
+            handleSaveCurrentLayout();
+          }
+        }
+      ]
+    );
+  };
 
   /**
    * Handles modal cancellation
@@ -256,15 +293,17 @@ const CustomJoystickScreen: React.FC = () => {
     setShowSaveModal(false);
     setSaveLayoutName('');
   };
-
   return (
     <View style={styles.container}>
-      {/* Header with controls */}
       <Header
         currentLayoutName={currentLayoutName}
         isEditMode={isEditMode}
         onToggleEditMode={() => setIsEditMode(!isEditMode)}
         onAddButton={() => setShowAddModal(true)}
+        onResetToGamepad={handleResetToGamepad}
+        savedLayouts={savedLayouts}
+        onLoadLayout={handleLoadLayout}
+        onDeleteLayout={handleDeleteLayout}
       />
 
       {/* Settings panel (visible only in edit mode) */}
@@ -281,13 +320,6 @@ const CustomJoystickScreen: React.FC = () => {
         onEditButton={handleEditButton}
         onRemoveButton={handleRemoveButton}
         onSliderValueChange={handleSliderValueChange}
-      />
-
-      {/* Saved layouts */}
-      <SavedLayouts
-        savedLayouts={savedLayouts}
-        onLoadLayout={handleLoadLayout}
-        onDeleteLayout={handleDeleteLayout}
       />
 
       {/* Button configuration modal */}
@@ -319,7 +351,7 @@ const CustomJoystickScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#1a1a1a', // Dark gamepad-style background
   },
 });
 

@@ -1,4 +1,29 @@
 {
   "name": "robolink",
-  "displayName": "robolink"
+  "displayName": "robolink",
+  "expo": {
+    "name": "Robolink",
+    "slug": "robolink",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "platforms": ["ios", "android"],
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "orientation": "landscape"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "orientation": "landscape"
+    }
+  }
 }

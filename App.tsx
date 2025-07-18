@@ -43,7 +43,7 @@ const RootStack = createNativeStackNavigator({
       screen: CustomJoystickScreen,
       options: {
         title: 'Custom Joystick',
-        headerShown: true,
+        headerShown: false,
       },
     },
   },

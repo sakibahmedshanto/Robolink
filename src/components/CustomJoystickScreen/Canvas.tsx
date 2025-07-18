@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   canvas: {
     flex: 1,
     position: 'relative',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0a0a0a', // Match the gamepad's dark background
   },
 });
 

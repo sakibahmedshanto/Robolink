@@ -34,6 +34,8 @@ export {
   getButtonConfig,
 } from './utils';
 
+export { createGamepadLayout } from './gamepadLayout';
+
 // Storage exports
 export {
   loadSavedLayouts,
