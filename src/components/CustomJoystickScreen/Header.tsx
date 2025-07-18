@@ -15,6 +15,7 @@ interface HeaderProps {
     onAddButton: () => void;
     onResetToGamepad?: () => void;
     onShowInstructions?: () => void;
+    onSaveLayout?: () => void;
     savedLayouts?: SavedLayout[];
     onLoadLayout?: (layout: SavedLayout) => void;
     onDeleteLayout?: (layoutId: string) => void;
@@ -27,12 +28,13 @@ const Header: React.FC<HeaderProps> = ({
     onAddButton,
     onResetToGamepad,
     onShowInstructions,
+    onSaveLayout,
     savedLayouts = [],
     onLoadLayout,
     onDeleteLayout
 }) => {
     const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
-    
+
     return (
         <View style={styles.header}>
             <View style={styles.leftSection}>
@@ -44,25 +46,25 @@ const Header: React.FC<HeaderProps> = ({
                     <Text style={styles.dropdownIcon}>▼</Text>
                 </TouchableOpacity>
 
-                {onShowInstructions && (
+                {onShowInstructions ? (
                     <TouchableOpacity
                         style={styles.helpButton}
                         onPress={onShowInstructions}
                     >
                         <Text style={styles.helpButtonText}>?</Text>
                     </TouchableOpacity>
-                )}
+                ) : null}
             </View>
 
             <View style={styles.headerControls}>
-                {onResetToGamepad && (
+                {onResetToGamepad ? (
                     <TouchableOpacity
                         style={styles.headerButton}
                         onPress={onResetToGamepad}
                     >
                         <Text style={styles.headerButtonText}>Reset</Text>
                     </TouchableOpacity>
-                )}
+                ) : null}
                 <TouchableOpacity
                     style={styles.headerButton}
                     onPress={onToggleEditMode}
@@ -71,6 +73,14 @@ const Header: React.FC<HeaderProps> = ({
                         {isEditMode ? 'Done' : 'Edit'}
                     </Text>
                 </TouchableOpacity>
+                {(isEditMode && onSaveLayout) ? (
+                    <TouchableOpacity
+                        style={[styles.headerButton, styles.saveButton]}
+                        onPress={onSaveLayout}
+                    >
+                        <Text style={styles.headerButtonText}>Save</Text>
+                    </TouchableOpacity>
+                ) : null}
                 <TouchableOpacity
                     style={styles.headerButton}
                     onPress={onAddButton}
@@ -162,7 +172,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 12,
-    },    helpButtonText: {
+    }, helpButtonText: {
         color: '#000000',
         fontSize: 14,
         fontWeight: 'bold',
@@ -181,11 +191,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 3,
         elevation: 2,
-    },
-    headerButtonText: {
+    }, headerButtonText: {
         color: '#ffffff',
         fontWeight: '600',
         fontSize: 12,
+    },
+    saveButton: {
+        backgroundColor: '#16a34a',
     },
     layoutDropdownButton: {
         flexDirection: 'row',

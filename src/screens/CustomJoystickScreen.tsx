@@ -11,7 +11,6 @@ import { useFocusEffect } from '@react-navigation/native';
 
 // Component imports
 import Header from '../components/CustomJoystickScreen/Header';
-import SettingsPanel from '../components/CustomJoystickScreen/SettingsPanel';
 import Canvas from '../components/CustomJoystickScreen/Canvas';
 import ButtonConfigModal from '../components/CustomJoystickScreen/ButtonConfigModal';
 import SaveLayoutModal from '../components/CustomJoystickScreen/SaveLayoutModal';
@@ -63,14 +62,14 @@ const CustomJoystickScreen: React.FC = () => {
     React.useCallback(() => {
       // Lock to landscape orientation and hide system UI
       StatusBar.setHidden(true);
-      
+
       // Hide navigation bar on Android
       if (Platform.OS === 'android') {
         StatusBar.setBackgroundColor('transparent', true);
         StatusBar.setTranslucent(true);
         hideNavigationBar();
       }
-      
+
       // Cleanup function to reset when leaving screen
       return () => {
         StatusBar.setHidden(false);
@@ -122,11 +121,11 @@ const CustomJoystickScreen: React.FC = () => {
     try {
       const newLayout = createSavedLayout(name, layout);
       const updatedLayouts = [...savedLayouts, newLayout];
-      
+
       setSavedLayouts(updatedLayouts);
       await saveSavedLayouts(updatedLayouts);
       setCurrentLayoutName(name);
-      
+
       Alert.alert('Success', `Layout "${name}" saved successfully!`);
     } catch (error) {
       console.error('Error saving layout:', error);
@@ -180,11 +179,11 @@ const CustomJoystickScreen: React.FC = () => {
 
     const newButton = createNewButton(newType, newLabel, buttonConfig);
     const updatedLayout = [...layout, newButton];
-    
+
     setLayout(updatedLayout);
     setNewLabel('');
     setShowAddModal(false);
-    
+
     // Save after a short delay to ensure state is updated
     setTimeout(() => handleSaveCurrentLayout(), 100);
   };
@@ -281,9 +280,7 @@ const CustomJoystickScreen: React.FC = () => {
     );
   };
 
-  /**
-   * Handles modal cancellation
-   */
+
   const handleCancelModal = () => {
     setShowAddModal(false);
     setShowEditModal(false);
@@ -291,9 +288,6 @@ const CustomJoystickScreen: React.FC = () => {
     setButtonConfig(DEFAULT_BUTTON_CONFIG);
   };
 
-  /**
-   * Handles save layout modal actions
-   */
   const handleSaveLayoutModal = (name: string) => {
     handleSaveLayoutWithName(name);
     setShowSaveModal(false);
@@ -312,18 +306,12 @@ const CustomJoystickScreen: React.FC = () => {
         onToggleEditMode={() => setIsEditMode(!isEditMode)}
         onAddButton={() => setShowAddModal(true)}
         onResetToGamepad={handleResetToGamepad}
+        onSaveLayout={() => setShowSaveModal(true)}
         savedLayouts={savedLayouts}
         onLoadLayout={handleLoadLayout}
         onDeleteLayout={handleDeleteLayout}
       />
 
-      {/* Settings panel (visible only in edit mode) */}
-      <SettingsPanel
-        isEditMode={isEditMode}
-        onSaveLayout={() => setShowSaveModal(true)}
-      />
-
-      {/* Canvas with draggable buttons */}
       <Canvas
         layout={layout}
         isEditMode={isEditMode}
@@ -333,7 +321,6 @@ const CustomJoystickScreen: React.FC = () => {
         onSliderValueChange={handleSliderValueChange}
       />
 
-      {/* Button configuration modal */}
       <ButtonConfigModal
         visible={showAddModal || showEditModal}
         isEditMode={showEditModal}
@@ -347,7 +334,6 @@ const CustomJoystickScreen: React.FC = () => {
         onCancel={handleCancelModal}
       />
 
-      {/* Save layout modal */}
       <SaveLayoutModal
         visible={showSaveModal}
         layoutName={saveLayoutName}
