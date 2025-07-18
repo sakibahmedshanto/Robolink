@@ -30,6 +30,7 @@
         android:launchMode="singleTask"
         android:windowSoftInputMode="adjustResize"
         android:screenOrientation="landscape"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen"
         android:exported="true">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />

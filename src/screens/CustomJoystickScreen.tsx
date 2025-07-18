@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, StatusBar } from 'react-native';
+import { View, StyleSheet, Alert, StatusBar, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 // Component imports
@@ -36,6 +36,7 @@ import {
   getButtonConfig,
 } from '../components/CustomJoystickScreen/utils';
 import { createGamepadLayout } from '../components/CustomJoystickScreen/gamepadLayout';
+import { hideNavigationBar, showNavigationBar } from '../utils/navigationBar';
 
 const CustomJoystickScreen: React.FC = () => {
   // State management
@@ -57,17 +58,27 @@ const CustomJoystickScreen: React.FC = () => {
   // Load data on component mount
   useEffect(() => {
     loadInitialData();
-  }, []);
-
-  // Handle orientation on screen focus
+  }, []);  // Handle orientation on screen focus
   useFocusEffect(
     React.useCallback(() => {
-      // Lock to landscape orientation
+      // Lock to landscape orientation and hide system UI
       StatusBar.setHidden(true);
       
-      // Cleanup function to reset orientation when leaving screen
+      // Hide navigation bar on Android
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor('transparent', true);
+        StatusBar.setTranslucent(true);
+        hideNavigationBar();
+      }
+      
+      // Cleanup function to reset when leaving screen
       return () => {
         StatusBar.setHidden(false);
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#000000', true);
+          StatusBar.setTranslucent(false);
+          showNavigationBar();
+        }
       };
     }, [])
   );
@@ -351,7 +362,8 @@ const CustomJoystickScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a', // Dark gamepad-style background
+    backgroundColor: '#0a0a0a', // Very dark background to match gamepad image
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
 });
 
