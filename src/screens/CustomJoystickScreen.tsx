@@ -67,9 +67,10 @@ const CustomJoystickScreen = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
-  const [currentLayoutName, setCurrentLayoutName] = useState('Default');
-  const [isEditMode, setIsEditMode] = useState(false);
-  
+  const [currentLayoutName, setCurrentLayoutName] = useState('Default');  const [isEditMode, setIsEditMode] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveLayoutName, setSaveLayoutName] = useState('');
+
   // Button configuration states
   const [buttonConfig, setButtonConfig] = useState({
     direction: 'up',
@@ -104,31 +105,31 @@ const CustomJoystickScreen = () => {
       } else {
         // Default layout
         setLayout([
-          { 
+          {
             id: '1',
-            type: 'joystick', 
-            label: 'Movement', 
-            x: 80.50, 
+            type: 'joystick',
+            label: 'Movement',
+            x: 80.50,
             y: screen.height - 200.25,
             size: 80,
             color: '#2563eb',
             config: { sensitivity: 50 }
           },
-          { 
+          {
             id: '2',
-            type: 'action', 
-            label: 'Fire', 
-            x: screen.width - 120.75, 
+            type: 'action',
+            label: 'Fire',
+            x: screen.width - 120.75,
             y: screen.height - 200.25,
             size: 60,
             color: '#dc2626',
             config: { action: 'fire' }
           },
-          { 
+          {
             id: '3',
-            type: 'toggle', 
-            label: 'Lights', 
-            x: screen.width - 120.75, 
+            type: 'toggle',
+            label: 'Lights',
+            x: screen.width - 120.75,
             y: screen.height - 120.50,
             size: 50,
             color: '#f59e0b',
@@ -157,7 +158,7 @@ const CustomJoystickScreen = () => {
         layout: layout,
         createdAt: new Date().toISOString(),
       };
-      
+
       const updatedLayouts = [...savedLayouts, newLayout];
       setSavedLayouts(updatedLayouts);
       await AsyncStorage.setItem('customLayouts', JSON.stringify(updatedLayouts));
@@ -181,8 +182,8 @@ const CustomJoystickScreen = () => {
       'Are you sure you want to delete this layout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             const updatedLayouts = savedLayouts.filter(l => l.id !== layoutId);
@@ -228,8 +229,8 @@ const CustomJoystickScreen = () => {
       'Are you sure you want to remove this button?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: () => {
             setLayout(prevLayout => prevLayout.filter(item => item.id !== id));
@@ -243,14 +244,14 @@ const CustomJoystickScreen = () => {
   const updateButtonPosition = (id: string, x: number, y: number): void => {
     const finalX = parseFloat(x.toFixed(2));
     const finalY = parseFloat(y.toFixed(2));
-    
+
     setLayout(prevLayout => {
       const updated = prevLayout.map(item =>
         item.id === id ? { ...item, x: finalX, y: finalY } : item
       );
       return updated;
     });
-    
+
     setTimeout(() => saveCurrentLayout(), 100);
   };
 
@@ -320,7 +321,7 @@ const CustomJoystickScreen = () => {
       case 'slider':
         return <SliderButton {...commonProps} value={item.config?.sensitivity || 50} onValueChange={(value: number) => {
           const updatedLayout = layout.map(layoutItem =>
-            layoutItem.id === item.id 
+            layoutItem.id === item.id
               ? { ...layoutItem, config: { ...layoutItem.config, sensitivity: value } }
               : layoutItem
           );
@@ -357,7 +358,7 @@ const CustomJoystickScreen = () => {
       .onEnd(() => {
         const finalX = translateX.value;
         const finalY = translateY.value;
-        
+
         runOnJS(updateButtonPosition)(item.id, finalX, finalY);
       });
 
@@ -434,7 +435,7 @@ const CustomJoystickScreen = () => {
                 value={buttonConfig.size}
                 minimumValue={30}
                 maximumValue={120}
-                onValueChange={(value: number) => setButtonConfig({...buttonConfig, size: value})}
+                onValueChange={(value: number) => setButtonConfig({ ...buttonConfig, size: value })}
                 label="Size"
               />
             </View>
@@ -449,7 +450,7 @@ const CustomJoystickScreen = () => {
                     { backgroundColor: color },
                     buttonConfig.color === color && styles.colorOptionSelected,
                   ]}
-                  onPress={() => setButtonConfig({...buttonConfig, color})}
+                  onPress={() => setButtonConfig({ ...buttonConfig, color })}
                 />
               ))}
             </View>
@@ -460,7 +461,7 @@ const CustomJoystickScreen = () => {
                 <Picker
                   selectedValue={buttonConfig.direction}
                   style={styles.picker}
-                  onValueChange={(value) => setButtonConfig({...buttonConfig, direction: value})}
+                  onValueChange={(value) => setButtonConfig({ ...buttonConfig, direction: value })}
                 >
                   {DIRECTION_OPTIONS.map(dir => (
                     <Picker.Item key={dir} label={dir.replace('_', ' ')} value={dir} />
@@ -475,7 +476,7 @@ const CustomJoystickScreen = () => {
                 <Picker
                   selectedValue={buttonConfig.action}
                   style={styles.picker}
-                  onValueChange={(value) => setButtonConfig({...buttonConfig, action: value})}
+                  onValueChange={(value) => setButtonConfig({ ...buttonConfig, action: value })}
                 >
                   {ACTION_OPTIONS.map(action => (
                     <Picker.Item key={action} label={action} value={action} />
@@ -493,7 +494,7 @@ const CustomJoystickScreen = () => {
                     value={buttonConfig.sensitivity}
                     minimumValue={1}
                     maximumValue={100}
-                    onValueChange={(value: number) => setButtonConfig({...buttonConfig, sensitivity: value})}
+                    onValueChange={(value: number) => setButtonConfig({ ...buttonConfig, sensitivity: value })}
                     label="Sensitivity"
                   />
                 </View>
@@ -505,7 +506,7 @@ const CustomJoystickScreen = () => {
               style={styles.input}
               placeholder="Enter custom command (optional)"
               value={buttonConfig.customCommand}
-              onChangeText={(value) => setButtonConfig({...buttonConfig, customCommand: value})}
+              onChangeText={(value) => setButtonConfig({ ...buttonConfig, customCommand: value })}
             />
 
             <View style={styles.modalButtons}>
@@ -571,7 +572,6 @@ const CustomJoystickScreen = () => {
         </View>
       </View>
 
-      {/* Settings Panel */}
       {isEditMode && (
         <View style={styles.settingsPanel}>
           <TouchableOpacity
@@ -582,7 +582,7 @@ const CustomJoystickScreen = () => {
                 'Enter a name for this layout:',
                 (name) => {
                   if (name && name.trim()) {
-                    saveLayoutWithName(name.trim());
+                     (name.trim());
                   }
                 }
               );
@@ -592,7 +592,7 @@ const CustomJoystickScreen = () => {
           </TouchableOpacity>
         </View>
       )}
-      
+
       {/* Canvas */}
       <View style={styles.canvas}>
         {layout.map((item, idx) => (
