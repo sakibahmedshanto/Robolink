@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, StatusBar, Platform } from 'react-native';
+import { View, StyleSheet, Alert, StatusBar, Platform, Text } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 // Component imports
@@ -14,6 +14,9 @@ import Header from '../components/CustomJoystickScreen/Header';
 import Canvas from '../components/CustomJoystickScreen/Canvas';
 import ButtonConfigModal from '../components/CustomJoystickScreen/ButtonConfigModal';
 import SaveLayoutModal from '../components/CustomJoystickScreen/SaveLayoutModal';
+
+// Add GlobalKeyEvent import for physical gamepad input handling
+import { GlobalKeyEvent } from '../specs';
 
 // Type and utility imports
 import { JoystickButton, SavedLayout, ButtonConfig } from '../components/CustomJoystickScreen/types';
@@ -55,33 +58,28 @@ const CustomJoystickScreen: React.FC = () => {
   // Button configuration state
   const [buttonConfig, setButtonConfig] = useState<ButtonConfig>(DEFAULT_BUTTON_CONFIG);
 
+  // Physical gamepad input state - same as GamepadViewer component
+  const [gamepadInputs, setGamepadInputs] = useState<{ [key: string]: any }>({});
+  
+  // State to show when physical input is detected
+  const [lastPhysicalInput, setLastPhysicalInput] = useState<string>('');
+
   // Load data on component mount
   useEffect(() => {
     loadInitialData();
-  }, []);  // Handle orientation on screen focus
-  useFocusEffect(
-    React.useCallback(() => {
-      // Lock to landscape orientation and hide system UI
-      StatusBar.setHidden(true);
+  }, []);
 
-      // Hide navigation bar on Android
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor('transparent', true);
-        StatusBar.setTranslucent(true);
-        hideNavigationBar();
-      }
+  // Physical gamepad input listeners - same as in GamepadViewer
+  useEffect(() => {
+    const subs = [
+      GlobalKeyEvent.addKeyUpListener(updateInputs),
+      GlobalKeyEvent.addKeyDownListener(updateInputs),
+      GlobalKeyEvent.onJoystickMoveListener(updateInputs),
+    ];
 
-      // Cleanup function to reset when leaving screen
-      return () => {
-        StatusBar.setHidden(false);
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#000000', true);
-          StatusBar.setTranslucent(false);
-          showNavigationBar();
-        }
-      };
-    }, [])
-  );
+    return () => subs.forEach(sub => sub.remove());
+  }, []);
+
   /**
    * Loads initial data from storage
    */
@@ -306,7 +304,61 @@ const CustomJoystickScreen: React.FC = () => {
   const handleCancelSaveModal = () => {
     setShowSaveModal(false);
     setSaveLayoutName('');
+  };  /**
+   * Updates the input states based on gamepad events
+   * This is the same function used in GamepadViewer for handling physical gamepad input
+   */
+  const updateInputs = (evt: { [key: string]: any }) => {
+    setGamepadInputs(prev => ({ ...prev, ...evt }));
+    
+    // Update last input indicator for visual feedback
+    const inputKeys = Object.keys(evt);
+    if (inputKeys.length > 0) {
+      const activeInputs = inputKeys.filter(key => evt[key] !== 0);
+      if (activeInputs.length > 0) {
+        setLastPhysicalInput(`Physical Input: ${activeInputs.join(', ')}`);
+      }
+    }
+    
+    // Log for debugging
+    console.log('Physical gamepad input:', evt);
+    
+    // EXAMPLE: Auto-trigger virtual buttons based on physical gamepad input
+    // Uncomment and modify the following section to map physical inputs to virtual button presses
+    
+    /*
+    // Example 1: Map physical A button (keyCode 96) to virtual button press
+    if (evt['96'] === 1) { // Physical A button pressed
+      // Find virtual button with id 'action-a' and trigger its action
+      const virtualButton = layout.find(button => button.id === 'action-a');
+      if (virtualButton) {
+        console.log('Virtual A button triggered by physical input');
+        // You can add your virtual button action logic here
+      }
+    }
+    
+    // Example 2: Map physical joystick movement to virtual joystick
+    if (evt.leftX !== undefined || evt.leftY !== undefined) {
+      // Handle left joystick movement
+      const leftX = evt.leftX || 0;
+      const leftY = evt.leftY || 0;
+      console.log(`Physical left joystick: X=${leftX}, Y=${leftY}`);
+      // Update virtual joystick position or trigger movement actions
+    }
+    
+    // Example 3: Map physical D-pad to virtual D-pad
+    if (evt.hatX !== undefined || evt.hatY !== undefined) {
+      const hatX = evt.hatX || 0;
+      const hatY = evt.hatY || 0;
+      if (hatX < 0) console.log('Virtual D-pad LEFT triggered by physical input');
+      if (hatX > 0) console.log('Virtual D-pad RIGHT triggered by physical input');
+      if (hatY < 0) console.log('Virtual D-pad UP triggered by physical input');
+      if (hatY > 0) console.log('Virtual D-pad DOWN triggered by physical input');
+    }
+    */
   };
+
+
   return (
     <View style={styles.container}>
       <Header
@@ -350,6 +402,13 @@ const CustomJoystickScreen: React.FC = () => {
         onSave={handleSaveLayoutModal}
         onCancel={handleCancelSaveModal}
       />
+
+      {/* Display physical input indicator */}
+      {lastPhysicalInput ? (
+        <View style={styles.physicalInputContainer}>
+          <Text style={styles.physicalInputText}>{lastPhysicalInput}</Text>
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -359,6 +418,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a0a', // Very dark background to match gamepad image
     // Remove paddingTop since we're handling immersive mode
+  },  physicalInputContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 255, 0, 0.8)',
+    padding: 10,
+    borderRadius: 5,
+    zIndex: 1000,
+  },  physicalInputText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
