@@ -27,10 +27,10 @@ const bluetoothStatusAtom = atom<BluetoothStatus>({
 })
 
 const udpStatusAtom = atom<UdpStatus>({
-    enableSendOverUdp: false,
+    enableSendOverUdp: true,
     ipAddress: null,
-    port: 1234,
-    intervalDelay: 100,
+    port: 1235,
+    intervalDelay: 500, // Reduce frequency to avoid callback buildup
 })
 
 

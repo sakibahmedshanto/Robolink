@@ -1,12 +1,13 @@
 /**
  * Data transmission management for Custom Joystick Screen
- * Handles button state and data transmission via Bluetooth/UDP
+ * Handles button state and data transmission via Bluetooth/UDP using JSON format
  */
 
 import { useRef, useEffect, useState } from 'react';
+import { Buffer } from 'buffer';
 import { BluetoothSerial } from '../../specs';
 import { useBluetoothStatus, useUdpStatus } from '../../atoms/configs';
-import { broadcastUdpData, useUdpSocket } from '../../atoms/udp';
+import { sendGamepadData, useUdpSocket } from '../../atoms/udp';
 
 interface ButtonState {
   [buttonId: string]: number; // 0 for released, 1 for pressed
@@ -46,8 +47,7 @@ export const useCustomJoystickData = () => {
 
   useEffect(() => {
     joystickDataRef.current = joystickData;
-  }, [joystickData]);
-  // Bluetooth transmission
+  }, [joystickData]);  // Bluetooth transmission
   useEffect(() => {
     console.log('🔧 Bluetooth transmission effect triggered:', {
       isConnected: bluetoothStatus.isConnected,
@@ -61,14 +61,30 @@ export const useCustomJoystickData = () => {
       return;
     }
 
-    if (btIntervalRef.current) clearInterval(btIntervalRef.current);
-
-    console.log('✅ Starting Bluetooth transmission interval');
+    if (btIntervalRef.current) clearInterval(btIntervalRef.current);    console.log('✅ Starting Bluetooth transmission interval');
     btIntervalRef.current = setInterval(() => {
-      const allData = { ...buttonStatesRef.current, ...joystickDataRef.current };
-      const message = formatMessage(allData);
-      console.log('📡 Bluetooth transmission:', message);
-      BluetoothSerial.writeToDevice(btoa(message));
+      // Create simple key-value format - same as main gamepad component
+      const gamepadValues: string[] = [];
+      
+      // Add button states
+      Object.keys(buttonStatesRef.current).forEach(key => {
+        const value = buttonStatesRef.current[key] || 0;
+        if (value !== 0) {
+          gamepadValues.push(`${key}=${value}`);
+        }
+      });
+      
+      // Add joystick/slider data
+      Object.keys(joystickDataRef.current).forEach(key => {
+        const value = joystickDataRef.current[key] || 0;
+        if (value !== 0) {
+          gamepadValues.push(`${key}=${value}`);
+        }
+      });
+      
+      const simpleMessage = gamepadValues.join(',');
+      console.log('📡 Bluetooth transmission (simple format):', simpleMessage);
+      BluetoothSerial.writeToDevice(simpleMessage);
     }, bluetoothStatus.intervalDelay || 100);
 
     return () => {
@@ -78,8 +94,7 @@ export const useCustomJoystickData = () => {
     bluetoothStatus.isConnected,
     bluetoothStatus.enableSendOverBT,
     bluetoothStatus.intervalDelay,
-  ]);
-  // UDP transmission
+  ]);  // UDP transmission
   useEffect(() => {
     console.log('🔧 UDP transmission effect triggered:', {
       enableSendOverUdp: udpStatus.enableSendOverUdp,
@@ -101,29 +116,47 @@ export const useCustomJoystickData = () => {
         if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
         return;
       }
+        // Create simple key-value format - same as main gamepad component
+      const gamepadValues: string[] = [];
       
-      const allData = { ...buttonStatesRef.current, ...joystickDataRef.current };
-      const message = formatMessage(allData);
-      console.log('📡 UDP transmission:', message);
-      if (udpSocket) broadcastUdpData(udpSocket, message, udpStatus.port);
-      else console.warn('UDP socket not available');
+      // Add button states
+      Object.keys(buttonStatesRef.current).forEach(key => {
+        const value = buttonStatesRef.current[key] || 0;
+        if (value !== 0) {
+          gamepadValues.push(`${key}=${value}`);
+        }
+      });
+      
+      // Add joystick/slider data
+      Object.keys(joystickDataRef.current).forEach(key => {
+        const value = joystickDataRef.current[key] || 0;
+        if (value !== 0) {
+          gamepadValues.push(`${key}=${value}`);
+        }
+      });
+      
+      const simpleMessage = gamepadValues.join(',');
+      console.log('📡 UDP transmission (simple format):', simpleMessage);
+        if (udpSocket && typeof udpSocket.send === 'function') {
+        try {
+          const buffer = Buffer.from(simpleMessage, 'utf8');
+          const targetPort = parseInt(udpStatus.port as any) || 1234;
+
+          // Send without callback to prevent memory leaks
+          udpSocket.send(buffer, 0, buffer.length, targetPort, '255.255.255.255');
+          console.log('✅ UDP data sent:', simpleMessage);
+        } catch (error) {
+          console.error('UDP send exception:', error);
+        }
+      } else {
+        console.warn('UDP socket not available - ensure UDP is enabled in settings');
+      }
     }, udpStatus.intervalDelay || 100);
 
     return () => {
       if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
     };
-  }, [udpStatus.enableSendOverUdp, udpStatus.intervalDelay, udpStatus.port]);
-
-  // Format message in the same format as GamepadInputs
-  const formatMessage = (data: JoystickData): string => {
-    const keys = Object.keys(data);
-    let result = `<${keys.length} `;
-    keys.forEach(key => {
-      result += `${data[key] || 0} `;
-    });
-    result += '>';
-    return result;
-  };
+  }, [udpStatus.enableSendOverUdp, udpStatus.intervalDelay, udpStatus.port, udpSocket]);
 
   // Button press handlers
   const handleButtonPress = (buttonId: string, pressed: boolean) => {
@@ -152,6 +185,22 @@ export const useCustomJoystickData = () => {
       ...prev,
       [sliderId]: Math.round(value * 10) // Scale 0-100 to 0-1000
     }));
+  };
+
+  // Format message function for debugging and display
+  const formatMessage = (data: any) => {
+    // Create simple key-value format - same as GampadInputs
+    const values: string[] = [];
+    
+    Object.keys(data).forEach(key => {
+      const value = data[key] || 0;
+      // Only include non-zero values to reduce clutter
+      if (value !== 0) {
+        values.push(`${key}=${value}`);
+      }
+    });
+    
+    return values.join(',') || 'No active inputs';
   };
 
   return {

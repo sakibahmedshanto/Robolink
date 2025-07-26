@@ -2,14 +2,14 @@ import React, { useState, useEffect, use, useRef, useCallback } from 'react';
 import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Buffer } from 'buffer';
 import { BluetoothSerial, GlobalKeyEvent } from '../specs';
 import { JoystickKeyMap } from '../const/JoystickKeyMap';
 import { useBluetoothStatus, useDTS, useUdpStatus } from '../atoms/configs';
 import MyButton from './Button';
 import { primaryColor } from '../const/theme';
 import TopHeaderButtons from './TopHeaderButtons';
-import { broadcastUdpData, useUdpSocket } from '../atoms/udp';
-// import { broadcastUdpData, udpSocket } from '../utils/udp';
+import { sendGamepadData, useUdpSocket } from '../atoms/udp';
 
 const styles = StyleSheet.create({
   container: {
@@ -64,6 +64,7 @@ export default function GamepadViewer() {
   const dtsRef = useRef(dts);
   const btIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const udpIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastDataRef = useRef<string>(''); // Track last sent data
   const { socket: udpSocket } = useUdpSocket();
 
   useEffect(() => {
@@ -73,7 +74,6 @@ export default function GamepadViewer() {
   useEffect(() => {
     dtsRef.current = dts;
   }, [dts]);
-
   useEffect(() => {
     if (!bluetoothStatus.isConnected || !bluetoothStatus.enableSendOverBT)
       return;
@@ -82,9 +82,24 @@ export default function GamepadViewer() {
     btIntervalRef.current = setInterval(() => {
       const inputs = inputsRef.current;
       const dts = dtsRef.current;
-      const result = getMessage(dts, inputs);
-      BluetoothSerial.writeToDevice(btoa(result));
+      // Create simple key-value format - much easier for Arduino/ESP32 to parse
+      const gamepadValues: string[] = [];
+
+      // Add all active inputs as simple key=value pairs
+      Object.keys(dts).forEach(key => {
+        const value = inputs[key] || 0;
+        const keyName = JoystickKeyMap[key as keyof typeof JoystickKeyMap] || key;
+
+        // Only send non-zero values to reduce data size
+        if (value !== 0) {
+          gamepadValues.push(`${keyName}=${value}`);
+        }
+      });
+
+      const simpleMessage = gamepadValues.join(',');
+      BluetoothSerial.writeToDevice(simpleMessage); console.log('📡 Sent gamepad data via Bluetooth:', simpleMessage);
     }, bluetoothStatus.intervalDelay || 100);
+
     return () => {
       if (btIntervalRef.current) clearInterval(btIntervalRef.current);
     };
@@ -93,7 +108,6 @@ export default function GamepadViewer() {
     bluetoothStatus.enableSendOverBT,
     bluetoothStatus.intervalDelay,
   ]);
-
   useEffect(() => {
     if (!udpStatus.enableSendOverUdp) {
       if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
@@ -105,19 +119,46 @@ export default function GamepadViewer() {
       if (!udpStatus.enableSendOverUdp) {
         if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
         return;
-      }
-
-      const inputs = inputsRef.current;
+      } const inputs = inputsRef.current;
       const dts = dtsRef.current;
-      const result = getMessage(dts, inputs);
-      if (udpSocket) broadcastUdpData(udpSocket, result, udpStatus.port);
-      else console.warn('UDP socket not available');
+
+      // Create simple key-value format - much easier for Arduino/ESP32 to parse
+      const gamepadValues: string[] = [];
+
+      // Add all active inputs as simple key=value pairs
+      Object.keys(dts).forEach(key => {
+        const value = inputs[key] || 0;
+        const keyName = JoystickKeyMap[key as keyof typeof JoystickKeyMap] || key;
+
+        // Only send non-zero values to reduce data size
+        if (value !== 0) {
+          gamepadValues.push(`${keyName}=${value}`);
+        }
+      });      // Format: "LX=0.5,RY=-0.8,A=1,B=0" - super easy to parse with split() and simple string operations
+      const simpleMessage = gamepadValues.join(',');      if (udpSocket) {
+        try {
+          const buffer = Buffer.from(simpleMessage, 'utf8');
+          const targetPort = parseInt(udpStatus.port as any) || 1234;
+
+          // Check if socket is ready before sending
+          if (typeof udpSocket.send === 'function') {
+            // Send without callback to prevent memory leaks
+            udpSocket.send(buffer, 0, buffer.length, targetPort, '255.255.255.255');
+            console.log('📡 Sent gamepad data via UDP:', simpleMessage);
+          } else {
+            console.warn('UDP socket not ready for sending');
+          }
+        } catch (error) {
+          console.error('UDP send exception:', error);
+        }
+      } else {console.warn('UDP socket not available - ensure UDP is enabled in settings');
+      }
     }, udpStatus.intervalDelay || 100);
 
     return () => {
       if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
     };
-  }, [udpStatus.enableSendOverUdp, udpStatus.intervalDelay, udpStatus.port]);
+  }, [udpStatus.enableSendOverUdp, udpStatus.intervalDelay, udpStatus.port, udpSocket]);
 
   useEffect(() => {
     const initialInputs = {
@@ -144,18 +185,44 @@ export default function GamepadViewer() {
 
     return () => subs.forEach(sub => sub.remove());
   }, []);
-
   const onToggleCheck = () => {
     setToggleEdit(prev => !prev);
   };
+  const getGamepadDataPreview = (dts: any, inputs: any) => {
+    // Create simple key-value format preview - much easier for Arduino/ESP32 to parse
+    const gamepadValues: string[] = [];
 
-  const getMessage = (dts: any, inputs: any) => {
-    let result = `<${Object.keys(dts).length} `;
-    for (const [Key, val] of Object.entries(dts)) {
-      result += `${inputs[Key] || 0} `;
-    }
-    result += '>';
-    return result;
+    // Add all active inputs as simple key=value pairs
+    Object.keys(dts).forEach(key => {
+      const value = inputs[key] || 0;
+      const keyName = JoystickKeyMap[key as keyof typeof JoystickKeyMap] || key;
+
+      // Show all values in preview (including zeros for reference)
+      gamepadValues.push(`${keyName}=${value}`);
+    });
+
+    // Format: "LX=0.5,RY=-0.8,A=1,B=0" - super easy to parse with split() and simple string operations
+    const simpleFormat = gamepadValues.join(',');
+
+    return (
+      <View>
+        <Text style={styles.value}>Simple Format (Arduino/ESP32 friendly):</Text>
+
+        <Text style={[styles.value, { fontFamily: 'monospace', marginVertical: 8 }]}>
+          {simpleFormat}
+        </Text>
+
+        <Text style={styles.value}>Example Arduino parsing:</Text>
+
+        <Text style={[styles.value, { fontFamily: 'monospace', fontSize: 11, marginTop: 4 }]}>
+          String data = "{simpleFormat}";
+        </Text>
+
+        <Text style={[styles.value, { fontFamily: 'monospace', fontSize: 11 }]}>
+          {`// Split by ',' then by '=' to get key-value pairs`}
+        </Text>
+      </View>
+    );
   };
   const updateInputs = (evt: { [key: string]: any }) => {
     setInputs(prev => ({ ...prev, ...evt }));
@@ -180,13 +247,11 @@ export default function GamepadViewer() {
 
   const renderButton = (key: string) => {
     return (
-      <View
-        style={{
-          ...styles.row,
-          backgroundColor: inputs[key] ? '#00000010' : 'transparent',
-        }}
-        key={key}
-      >
+      <View style={{
+        ...styles.row,
+        backgroundColor: inputs[key] ? '#00000010' : 'transparent',
+      }}
+        key={key}>
         <View
           style={{
             flex: 1,
@@ -326,12 +391,11 @@ export default function GamepadViewer() {
           {['leftTrigger', 'rightTrigger'].map(renderAxis)}
         </View>
       </View>
-
       <View style={styles.dts}>
-        <Text style={styles.title}>Data Format</Text>
-        <Text style={styles.value}>
-          {getMessage(dts, inputs)}
-        </Text>
+        <Text style={styles.title}>Simple Data Format (Arduino/ESP32 Friendly!)</Text>
+        <ScrollView style={{ maxHeight: 200 }}>
+          {getGamepadDataPreview(dts, inputs)}
+        </ScrollView>
       </View>
     </ScrollView>
   );
