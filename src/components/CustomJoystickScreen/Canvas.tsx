@@ -16,6 +16,9 @@ interface CanvasProps {
   onEditButton: (index: number) => void;
   onRemoveButton: (id: string) => void;
   onSliderValueChange: (id: string, value: number) => void;
+  onButtonPress?: (buttonId: string, pressed: boolean) => void;
+  onJoystickMove?: (joystickId: string, x: number, y: number) => void;
+  onSliderChange?: (sliderId: string, value: number) => void;
 }
 
 const Canvas: React.FC<CanvasProps> = ({
@@ -25,6 +28,9 @@ const Canvas: React.FC<CanvasProps> = ({
   onEditButton,
   onRemoveButton,
   onSliderValueChange,
+  onButtonPress,
+  onJoystickMove,
+  onSliderChange,
 }) => {
   const bounds = getUsableScreenDimensions();
   
@@ -57,8 +63,7 @@ const Canvas: React.FC<CanvasProps> = ({
           ]} 
         />
       )}
-      
-      {layout.map((item, idx) => (
+        {layout.map((item, idx) => (
         <AnimatedButton
           key={item.id}
           item={item}
@@ -68,6 +73,9 @@ const Canvas: React.FC<CanvasProps> = ({
           onEditButton={onEditButton}
           onRemoveButton={onRemoveButton}
           onSliderValueChange={onSliderValueChange}
+          onButtonPress={onButtonPress}
+          onJoystickMove={onJoystickMove}
+          onSliderChange={onSliderChange}
         />
       ))}
     </View>

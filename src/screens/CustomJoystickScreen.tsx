@@ -40,8 +40,19 @@ import {
 import { createGamepadLayout } from '../components/CustomJoystickScreen/gamepadLayout';
 import { hideNavigationBar, showNavigationBar } from '../utils/navigationBar';
 import { constrainToScreenBounds } from '../components/CustomJoystickScreen/screenBounds';
+import { useCustomJoystickData } from '../components/CustomJoystickScreen/dataTransmission';
 
 const CustomJoystickScreen: React.FC = () => {
+  // Data transmission hook for Bluetooth/UDP
+  const {
+    buttonStates,
+    joystickData,
+    handleButtonPress,
+    handleJoystickMove,
+    handleSliderChange,
+    formatMessage,
+  } = useCustomJoystickData();
+
   // State management
   const [layout, setLayout] = useState<JoystickButton[]>([]);
   const [newType, setNewType] = useState<string>('direction');
@@ -60,7 +71,7 @@ const CustomJoystickScreen: React.FC = () => {
 
   // Physical gamepad input state - same as GamepadViewer component
   const [gamepadInputs, setGamepadInputs] = useState<{ [key: string]: any }>({});
-  
+
   // State to show when physical input is detected
   const [lastPhysicalInput, setLastPhysicalInput] = useState<string>('');
 
@@ -307,10 +318,11 @@ const CustomJoystickScreen: React.FC = () => {
   };  /**
    * Updates the input states based on gamepad events
    * This is the same function used in GamepadViewer for handling physical gamepad input
+   * Now also forwards data to the same Bluetooth/UDP transmission system
    */
   const updateInputs = (evt: { [key: string]: any }) => {
     setGamepadInputs(prev => ({ ...prev, ...evt }));
-    
+
     // Update last input indicator for visual feedback
     const inputKeys = Object.keys(evt);
     if (inputKeys.length > 0) {
@@ -319,13 +331,28 @@ const CustomJoystickScreen: React.FC = () => {
         setLastPhysicalInput(`Physical Input: ${activeInputs.join(', ')}`);
       }
     }
-    
-    // Log for debugging
-    console.log('Physical gamepad input:', evt);
-    
+
+    // Log for debugging - Physical gamepad input
+    console.log('🎮 Physical gamepad input:', evt);
+
+    // Forward physical gamepad input to the same transmission system
+    // This uses the same formatMessage function and transmission intervals as virtual buttons
+    Object.keys(evt).forEach(key => {
+      const value = evt[key];
+      if (value !== undefined) {
+        // For buttons (0 or 1), treat as button press
+        if (key.match(/^\d+$/)) { // Button keycodes are numeric strings
+          handleButtonPress(`physical_btn_${key}`, value === 1);
+        } else {
+          // For analog inputs (joysticks, triggers), pass directly
+          handleJoystickMove(`physical_${key}`, value / 1000, 0); // Scale back from -1000/1000 to -1/1
+        }
+      }
+    });
+
     // EXAMPLE: Auto-trigger virtual buttons based on physical gamepad input
     // Uncomment and modify the following section to map physical inputs to virtual button presses
-    
+
     /*
     // Example 1: Map physical A button (keyCode 96) to virtual button press
     if (evt['96'] === 1) { // Physical A button pressed
@@ -372,7 +399,6 @@ const CustomJoystickScreen: React.FC = () => {
         onLoadLayout={handleLoadLayout}
         onDeleteLayout={handleDeleteLayout}
       />
-
       <Canvas
         layout={layout}
         isEditMode={isEditMode}
@@ -380,6 +406,9 @@ const CustomJoystickScreen: React.FC = () => {
         onEditButton={handleEditButton}
         onRemoveButton={handleRemoveButton}
         onSliderValueChange={handleSliderValueChange}
+        onButtonPress={handleButtonPress}
+        onJoystickMove={handleJoystickMove}
+        onSliderChange={handleSliderChange}
       />
 
       <ButtonConfigModal
@@ -409,6 +438,16 @@ const CustomJoystickScreen: React.FC = () => {
           <Text style={styles.physicalInputText}>{lastPhysicalInput}</Text>
         </View>
       ) : null}
+
+      {/* Display current data transmission */}
+      <View style={styles.dataTransmissionContainer}>
+        <Text style={styles.dataTransmissionText}>
+          📡 Data: {formatMessage({ ...buttonStates, ...joystickData })}
+        </Text>
+        <Text style={styles.dataTransmissionText}>
+          🎮 Buttons: {Object.keys(buttonStates).length} | 🕹️ Analog: {Object.keys(joystickData).length}
+        </Text>
+      </View>
     </View>
   );
 };
@@ -418,19 +457,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a0a', // Very dark background to match gamepad image
     // Remove paddingTop since we're handling immersive mode
-  },  physicalInputContainer: {
+  },
+  physicalInputContainer: {
     position: 'absolute',
     bottom: 20,
     left: 20,
     right: 20,
     backgroundColor: 'rgba(0, 255, 0, 0.8)',
-    padding: 10,
-    borderRadius: 5,
+    padding: 10, borderRadius: 5,
     zIndex: 1000,
-  },  physicalInputText: {
+  },
+  physicalInputText: {
     color: '#000',
     fontSize: 12,
     fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  dataTransmissionContainer: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 10,
+    borderRadius: 5,
+    zIndex: 1000,
+  },
+  dataTransmissionText: {
+    color: '#fff',
+    fontSize: 10,
+    fontFamily: 'monospace',
     textAlign: 'center',
   },
 });

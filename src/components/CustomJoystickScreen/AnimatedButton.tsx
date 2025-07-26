@@ -27,6 +27,9 @@ interface AnimatedButtonProps {
   onEditButton: (index: number) => void;
   onRemoveButton: (id: string) => void;
   onSliderValueChange: (id: string, value: number) => void;
+  onButtonPress?: (buttonId: string, pressed: boolean) => void;
+  onJoystickMove?: (joystickId: string, x: number, y: number) => void;
+  onSliderChange?: (sliderId: string, value: number) => void;
 }
 
 const AnimatedButton: React.FC<AnimatedButtonProps> = ({
@@ -37,7 +40,10 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   onEditButton,
   onRemoveButton,
   onSliderValueChange,
-}) => {  // Animated values for position
+  onButtonPress,
+  onJoystickMove,
+  onSliderChange,
+}) => {// Animated values for position
   const translateX = useSharedValue(item.x);
   const translateY = useSharedValue(item.y);
   const startPosition = useSharedValue({ x: 0, y: 0 });
@@ -83,7 +89,6 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       { translateY: translateY.value },
     ],
   }));
-
   /**
    * Renders the appropriate button component based on type
    */
@@ -92,28 +97,62 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       label: item.label,
       size: item.size,
       color: item.color,
+      id: item.id,
+      disabled: isEditMode, // Disable button functionality in edit mode
       ...item.config,
     };
 
     switch (item.type) {
       case 'direction':
-        return <DirectionButton {...commonProps} />;
+        return (
+          <DirectionButton 
+            {...commonProps} 
+            direction={item.config?.direction}
+            onPressIn={() => onButtonPress?.(item.id, true)}
+            onPressOut={() => onButtonPress?.(item.id, false)}
+          />
+        );
       case 'action':
-        return <ActionButton {...commonProps} />;
+        return (
+          <ActionButton 
+            {...commonProps} 
+            action={item.config?.action}
+            onPressIn={() => onButtonPress?.(item.id, true)}
+            onPressOut={() => onButtonPress?.(item.id, false)}
+          />
+        );
       case 'toggle':
-        return <ToggleButton {...commonProps} />;
+        return (
+          <ToggleButton 
+            {...commonProps} 
+            action={item.config?.action}
+            onToggle={(active: boolean) => onButtonPress?.(item.id, active)}
+          />
+        );
       case 'slider':
         return (
           <SliderButton
             {...commonProps}
             value={item.config?.sensitivity || 50}
-            onValueChange={(value: number) => onSliderValueChange(item.id, value)}
+            onValueChange={(value: number) => {
+              onSliderValueChange(item.id, value);
+              onSliderChange?.(item.id, value);
+            }}
+          />
+        );      case 'joystick':
+        return (
+          <VirtualJoystick 
+            {...commonProps} 
           />
         );
-      case 'joystick':
-        return <VirtualJoystick {...commonProps} />;
       default:
-        return <ActionButton {...commonProps} />;
+        return (
+          <ActionButton 
+            {...commonProps} 
+            onPressIn={() => onButtonPress?.(item.id, true)}
+            onPressOut={() => onButtonPress?.(item.id, false)}
+          />
+        );
     }
   };
 
