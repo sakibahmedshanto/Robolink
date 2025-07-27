@@ -5,15 +5,63 @@ import UdpSockets from 'react-native-udp';
 import UdpSocket from 'react-native-udp/lib/types/UdpSocket';
 import { useUdpStatus } from './configs';
 
+// Simplified UDP data structure - much easier to use than custom format
+interface GamepadData {
+  timestamp: number;
+  buttons: { [key: string]: number };
+  axes: { [key: string]: number };
+  deviceInfo?: {
+    type: string;
+    name: string;
+  };
+}
 
-export const broadcastUdpData = (udpSocket: UdpSocket, data: any, port:number) => {
+export const sendGamepadData = (udpSocket: UdpSocket, gamepadData: GamepadData, port: number) => {
+  const targetPort = parseInt(port as any) || 1234;
+  
+  // Create Arduino/ESP32-friendly key=value format instead of JSON
+  const keyValuePairs: string[] = [];
+  
+  // Add axes data
+  Object.entries(gamepadData.axes).forEach(([key, value]) => {
+    keyValuePairs.push(`${key}=${value.toFixed(3)}`);
+  });
+  
+  // Add button data
+  Object.entries(gamepadData.buttons).forEach(([key, value]) => {
+    keyValuePairs.push(`${key}=${value}`);
+  });
+  
+  // Add timestamp
+  keyValuePairs.push(`T=${Date.now()}`);
+  
+  // Create final message: "LX=0.500,RY=-0.800,A=1,B=0,T=1234567890"
+  const message = keyValuePairs.join(',');
+  const buffer = Buffer.from(message, 'utf8');
+  
+  try {
+    // Check if socket is ready before sending
+    if (!udpSocket || typeof udpSocket.send !== 'function') {
+      console.warn('UDP socket not ready, skipping send');
+      return;
+    }
+
+    // Send without callback to prevent callback buildup
+    udpSocket.send(buffer, 0, buffer.length, targetPort, '255.255.255.255');
+    
+  } catch (error) {
+    console.error('UDP transmission error:', error);
+  }
+};
+
+// Legacy function for backwards compatibility (will be removed)
+export const broadcastUdpData = (udpSocket: UdpSocket, data: any, port: number) => {
+  console.warn('broadcastUdpData is deprecated. Use sendGamepadData instead.');
   const message = Buffer.from(data);
   const targetPort = parseInt(port as any) || 1234;
   try {
-      udpSocket.send(message, 0, message.length, targetPort, '255.255.255.255', (err) => {
-          // if (err) console.error('UDP send error:', err);
-          // else console.log('UDP message broadcasted:', data);
-      });
+      // Remove callback to prevent callback buildup
+      udpSocket.send(message, 0, message.length, targetPort, '255.255.255.255');
   } catch (error) {
     console.log(error);
   }
@@ -28,6 +76,15 @@ export const useUdpSocket = () => {
   const [udpStatus, _] = useUdpStatus(); // dynamic port from atom
 
   useEffect(() => {
+    // Don't create socket if UDP is disabled
+    if (!udpStatus.enableSendOverUdp) {
+      if (socket) {
+        socket.close();
+        setSocket(null);
+      }
+      return;
+    }
+
     let currentSocket = socket;
 
     // Cleanup: Close old socket
@@ -36,29 +93,48 @@ export const useUdpSocket = () => {
       setSocket(null);
     }
 
-    // Create new socket
-    const newSocket = UdpSockets.createSocket({
-      type: 'udp4',
-      reusePort: true,
-    });
+    // Create new socket with error handling
+    try {
+      const newSocket = UdpSockets.createSocket({
+        type: 'udp4',
+        reusePort: true,
+      });
 
-    newSocket.bind(udpStatus.port, () => {
-      newSocket.setBroadcast(true);
-      console.log(`UDP socket bound to port ${udpStatus.port}`);
-    });
+      // Set up error handler before binding
+      newSocket.on('error', (err) => {
+        console.error('UDP Socket Error:', err);
+        setSocket(null);
+      });      newSocket.on('listening', () => {
+        try {
+          newSocket.setBroadcast(true);
+          console.log(`✅ UDP socket ready on port ${udpStatus.port}`);
+          setSocket(newSocket);
+        } catch (error) {
+          console.error('Error setting broadcast:', error);
+        }
+      });
 
-    newSocket.on('error', (err) => {
-      console.error('UDP Socket Error:', err);
-    });
+      // Bind to port without callback to prevent pending callback warnings
+      try {
+        newSocket.bind(udpStatus.port);
+      } catch (error) {
+        console.error('UDP bind error:', error);
+        setSocket(null);
+      }
 
-    setSocket(newSocket);
+    } catch (error) {
+      console.error('Error creating UDP socket:', error);
+      setSocket(null);
+    }
 
     return () => {
-      newSocket.close();
-      setSocket(null);
-      console.log('UDP socket closed');
+      if (socket) {
+        socket.close();
+        setSocket(null);
+        console.log('UDP socket closed');
+      }
     };
-  }, [udpStatus.port]); // rerun whenever port changes
+  }, [udpStatus.port, udpStatus.enableSendOverUdp]); // rerun whenever port or enable status changes
 
   return {socket, setSocket};
 };
