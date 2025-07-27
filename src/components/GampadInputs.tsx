@@ -64,6 +64,12 @@ export default function GamepadViewer() {
   const dtsRef = useRef(dts);
   const btIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>(''); // Track last sent data
+  // Real-time input handling - no buffering, immediate response
+  const lastInputValueRef = useRef<{ [key: string]: any }>({});
+  const lastAnalogSendTimeRef = useRef<{ [key: string]: number }>({});
+  
+  const ANALOG_SEND_INTERVAL = 50; // Only limit analog inputs to 20fps
+  const BUTTON_DEAD_ZONE = 0.1; // Threshold for analog inputs to be considered "pressed"
 
   useEffect(() => {
     inputsRef.current = inputs;
@@ -154,16 +160,16 @@ export default function GamepadViewer() {
         setInputs(prev => ({ ...prev, ...parsedData }));
       } else setDTS(initialInputs);
     });
-  }, []);
-
-  useEffect(() => {
+  }, []);  useEffect(() => {
     const subs = [
       GlobalKeyEvent.addKeyUpListener(updateInputs),
       GlobalKeyEvent.addKeyDownListener(updateInputs),
       GlobalKeyEvent.onJoystickMoveListener(updateInputs),
     ];
 
-    return () => subs.forEach(sub => sub.remove());
+    return () => {
+      subs.forEach(sub => sub.remove());
+    };
   }, []);
   const onToggleCheck = () => {
     setToggleEdit(prev => !prev);
@@ -203,9 +209,68 @@ export default function GamepadViewer() {
         </Text>
       </View>
     );
+  };  /**
+   * Real-time input handler - no buffering, immediate response for buttons
+   * Only rate-limits analog inputs to prevent excessive data transmission
+   */
+  const realtimeInputHandler = (evt: { [key: string]: any }) => {
+    const currentTime = Date.now();
+    const updates: { [key: string]: any } = {};
+    let hasButtonChanges = false;
+    let hasAnalogChanges = false;
+
+    Object.keys(evt).forEach(key => {
+      const newValue = evt[key];
+      const lastValue = lastInputValueRef.current[key];
+
+      // Detect if this is a button input (numeric keys are buttons)
+      const isButton = key.match(/^\d+$/);
+      
+      if (isButton) {
+        // BUTTONS: Send immediately on any change (press or release)
+        if (newValue !== lastValue) {
+          updates[key] = newValue;
+          lastInputValueRef.current[key] = newValue;
+          hasButtonChanges = true;
+          console.log(`🎮 [REALTIME] Button ${key}: ${lastValue} → ${newValue}`);
+        }
+      } else {
+        // ANALOG INPUTS: Rate limit but still responsive
+        const lastSendTime = lastAnalogSendTimeRef.current[key] || 0;
+        const timeSinceLastSend = currentTime - lastSendTime;
+        
+        // Send if: significant change OR enough time has passed
+        const significantChange = Math.abs((lastValue || 0) - newValue) > BUTTON_DEAD_ZONE;
+        const timeToSend = timeSinceLastSend >= ANALOG_SEND_INTERVAL;
+        
+        if (significantChange || timeToSend) {
+          updates[key] = newValue;
+          lastInputValueRef.current[key] = newValue;
+          lastAnalogSendTimeRef.current[key] = currentTime;
+          hasAnalogChanges = true;
+          if (significantChange) {
+            console.log(`🕹️ [REALTIME] Analog ${key}: ${lastValue} → ${newValue} (significant change)`);
+          }
+        }
+      }
+    });
+
+    // Apply updates immediately if we have any changes
+    if (hasButtonChanges || hasAnalogChanges) {
+      setInputs(prev => ({ ...prev, ...updates }));
+      
+      if (hasButtonChanges) {
+        console.log('⚡ [REALTIME] Button changes applied immediately');
+      }
+      if (hasAnalogChanges) {
+        console.log('🎯 [REALTIME] Analog changes applied');
+      }
+    }
   };
+
   const updateInputs = (evt: { [key: string]: any }) => {
-    setInputs(prev => ({ ...prev, ...evt }));
+    // Use real-time handler for immediate response
+    realtimeInputHandler(evt);
   };
 
   const toggleDTS = (key: string) => {

@@ -21,7 +21,7 @@ export const useCustomJoystickData = () => {
   const [buttonStates, setButtonStates] = useState<ButtonState>({});
   const [joystickData, setJoystickData] = useState<JoystickData>({});
   const [bluetoothStatus] = useBluetoothStatus();
-  const { startTransmission, stopTransmission } = useUdpSingleton();
+  const { startTransmission, stopTransmission, sendImmediately } = useUdpSingleton();
   
   console.log('🎮 Custom Joystick Data Hook Initialized', {
     bluetoothStatus: {
@@ -123,8 +123,7 @@ export const useCustomJoystickData = () => {
       stopTransmission();
     };
   }, []); // Empty dependency array - we only want to set this up once
-
-  // Button press handlers
+  // Button press handlers with immediate transmission
   const handleButtonPress = (buttonId: string, pressed: boolean) => {
     const value = pressed ? 1 : 0;
     console.log(`🎮 Custom Joystick Button ${buttonId}: ${pressed ? 'PRESSED' : 'RELEASED'} (Value: ${value})`);
@@ -132,25 +131,53 @@ export const useCustomJoystickData = () => {
       ...prev,
       [buttonId]: value
     }));
+
+    // Send immediately for real-time control
+    const immediateData = `${buttonId}=${value}`;
+    sendImmediately(immediateData);
+    console.log(`⚡ Immediate button data sent: ${immediateData}`);
   };
 
-  // Joystick movement handlers
+  // Joystick movement handlers with smart transmission
   const handleJoystickMove = (joystickId: string, x: number, y: number) => {
     console.log(`🕹️ Custom Joystick ${joystickId}: X=${x}, Y=${y}`);
+    
+    const scaledX = Math.round(x * 1000); // Scale to match physical gamepad format (-1000 to 1000)
+    const scaledY = Math.round(y * 1000);
+    
     setJoystickData(prev => ({
       ...prev,
-      [`${joystickId}_x`]: Math.round(x * 1000), // Scale to match physical gamepad format (-1000 to 1000)
-      [`${joystickId}_y`]: Math.round(y * 1000)
+      [`${joystickId}_x`]: scaledX,
+      [`${joystickId}_y`]: scaledY
     }));
-  };
 
-  // Slider value handlers
+    // For joysticks, only send immediately if it's a significant change
+    const prevX = joystickDataRef.current[`${joystickId}_x`] || 0;
+    const prevY = joystickDataRef.current[`${joystickId}_y`] || 0;
+    
+    const deltaX = Math.abs(scaledX - prevX);
+    const deltaY = Math.abs(scaledY - prevY);
+      // Send immediately if significant movement (threshold of 100 = 0.1 in normalized coords)
+    if (deltaX > 100 || deltaY > 100) {
+      const immediateData = `${joystickId}_x=${scaledX},${joystickId}_y=${scaledY}`;
+      sendImmediately(immediateData);
+      console.log(`⚡ Immediate joystick data sent: ${immediateData}`);
+    }
+  };
+  // Slider value handlers with immediate transmission
   const handleSliderChange = (sliderId: string, value: number) => {
-    console.log(`🎚️ Custom Slider ${sliderId}: ${value}`);
+    const scaledValue = Math.round(value * 10); // Scale 0-100 to 0-1000
+    console.log(`🎚️ Custom Slider ${sliderId}: ${value} → ${scaledValue}`);
+    
     setJoystickData(prev => ({
       ...prev,
-      [sliderId]: Math.round(value * 10) // Scale 0-100 to 0-1000
+      [sliderId]: scaledValue
     }));
+
+    // Send immediately for real-time control
+    const immediateData = `${sliderId}=${scaledValue}`;
+    sendImmediately(immediateData);
+    console.log(`⚡ Immediate slider data sent: ${immediateData}`);
   };
 
   // Format message function for debugging and display

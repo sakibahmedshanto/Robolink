@@ -5,7 +5,7 @@
  * Fixed to horizontal orientation with gamepad-style layout
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Alert, StatusBar, Platform, Text } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -68,12 +68,17 @@ const CustomJoystickScreen: React.FC = () => {
 
   // Button configuration state
   const [buttonConfig, setButtonConfig] = useState<ButtonConfig>(DEFAULT_BUTTON_CONFIG);
-
   // Physical gamepad input state - same as GamepadViewer component
   const [gamepadInputs, setGamepadInputs] = useState<{ [key: string]: any }>({});
 
   // State to show when physical input is detected
   const [lastPhysicalInput, setLastPhysicalInput] = useState<string>('');
+  // Real-time input handling - no buffering, immediate response
+  const lastInputValueRef = useRef<{ [key: string]: any }>({});
+  const lastAnalogSendTimeRef = useRef<{ [key: string]: number }>({});
+  
+  const ANALOG_SEND_INTERVAL = 50; // Only limit analog inputs to 20fps
+  const BUTTON_DEAD_ZONE = 0.1; // Threshold for analog inputs to be considered "pressed"
 
   // Load data on component mount
   useEffect(() => {
@@ -316,30 +321,95 @@ const CustomJoystickScreen: React.FC = () => {
     setShowSaveModal(false);
     setSaveLayoutName('');
   };  /**
-   * Updates the input states based on gamepad events
-   * This is the same function used in GamepadViewer for handling physical gamepad input
-   * Now also forwards data to the same Bluetooth/UDP transmission system
+   * Real-time input handler - no buffering, immediate response for buttons
+   * Only rate-limits analog inputs to prevent excessive data transmission
    */
-  const updateInputs = (evt: { [key: string]: any }) => {
-    setGamepadInputs(prev => ({ ...prev, ...evt }));
+  const realtimeInputHandler = (evt: { [key: string]: any }) => {
+    const currentTime = Date.now();
+    const updates: { [key: string]: any } = {};
+    let hasButtonChanges = false;
+    let hasAnalogChanges = false;
 
-    // Update last input indicator for visual feedback
-    const inputKeys = Object.keys(evt);
-    if (inputKeys.length > 0) {
-      const activeInputs = inputKeys.filter(key => evt[key] !== 0);
+    Object.keys(evt).forEach(key => {
+      const newValue = evt[key];
+      const lastValue = lastInputValueRef.current[key];
+
+      // Detect if this is a button input (numeric keys are buttons)
+      const isButton = key.match(/^\d+$/);
+      
+      if (isButton) {
+        // BUTTONS: Send immediately on any change (press or release)
+        if (newValue !== lastValue) {
+          updates[key] = newValue;
+          lastInputValueRef.current[key] = newValue;
+          hasButtonChanges = true;
+          console.log(`🎮 [CUSTOM REALTIME] Button ${key}: ${lastValue} → ${newValue}`);
+          
+          // Immediately trigger button action
+          handleButtonPress(`physical_btn_${key}`, newValue === 1);
+        }
+      } else {
+        // ANALOG INPUTS: Rate limit but still responsive
+        const lastSendTime = lastAnalogSendTimeRef.current[key] || 0;
+        const timeSinceLastSend = currentTime - lastSendTime;
+        
+        // Send if: significant change OR enough time has passed
+        const significantChange = Math.abs((lastValue || 0) - newValue) > BUTTON_DEAD_ZONE;
+        const timeToSend = timeSinceLastSend >= ANALOG_SEND_INTERVAL;
+        
+        if (significantChange || timeToSend) {
+          updates[key] = newValue;
+          lastInputValueRef.current[key] = newValue;
+          lastAnalogSendTimeRef.current[key] = currentTime;
+          hasAnalogChanges = true;
+          
+          // Immediately trigger analog action
+          handleJoystickMove(`physical_${key}`, newValue / 1000, 0); // Scale back from -1000/1000 to -1/1
+          
+          if (significantChange) {
+            console.log(`🕹️ [CUSTOM REALTIME] Analog ${key}: ${lastValue} → ${newValue} (significant change)`);
+          }
+        }
+      }
+    });
+
+    // Update display state immediately if we have any changes
+    if (hasButtonChanges || hasAnalogChanges) {
+      setGamepadInputs(prev => ({ ...prev, ...updates }));
+      
+      // Update last input indicator for visual feedback
+      const activeInputs = Object.keys(updates).filter(key => updates[key] !== 0);
       if (activeInputs.length > 0) {
         setLastPhysicalInput(`Physical Input: ${activeInputs.join(', ')}`);
       }
+      
+      if (hasButtonChanges) {
+        console.log('⚡ [CUSTOM REALTIME] Button changes applied immediately');
+      }
+      if (hasAnalogChanges) {
+        console.log('🎯 [CUSTOM REALTIME] Analog changes applied');
+      }
+    }
+  };
+  /**
+   * Process filtered inputs without buffering
+   */
+  const processFilteredInputs = (inputs: { [key: string]: any }) => {
+    console.log('🎮 Filtered physical input:', inputs);
+
+    // Update state for display
+    setGamepadInputs(prev => ({ ...prev, ...inputs }));
+
+    // Update last input indicator for visual feedback
+    const activeInputs = Object.keys(inputs).filter(key => inputs[key] !== 0);
+    if (activeInputs.length > 0) {
+      setLastPhysicalInput(`Physical Input: ${activeInputs.join(', ')}`);
     }
 
-    // Log for debugging - Physical gamepad input
-    console.log('🎮 Physical gamepad input:', evt);
-
-    // Forward physical gamepad input to the same transmission system
-    // This uses the same formatMessage function and transmission intervals as virtual buttons
-    Object.keys(evt).forEach(key => {
-      const value = evt[key];
-      if (value !== undefined) {
+    // Forward to transmission system with rate limiting
+    Object.keys(inputs).forEach(key => {
+      const value = inputs[key];
+      if (value !== undefined && value !== 0) { // Only send non-zero values
         // For buttons (0 or 1), treat as button press
         if (key.match(/^\d+$/)) { // Button keycodes are numeric strings
           handleButtonPress(`physical_btn_${key}`, value === 1);
@@ -349,6 +419,14 @@ const CustomJoystickScreen: React.FC = () => {
         }
       }
     });
+  };
+  /**
+   * Updates the input states based on gamepad events
+   * Now with real-time processing - no buffering or delays
+   */
+  const updateInputs = (evt: { [key: string]: any }) => {
+    // Use real-time handler for immediate response
+    realtimeInputHandler(evt);
 
     // EXAMPLE: Auto-trigger virtual buttons based on physical gamepad input
     // Uncomment and modify the following section to map physical inputs to virtual button presses
@@ -457,14 +535,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a0a', // Very dark background to match gamepad image
     // Remove paddingTop since we're handling immersive mode
-  },
-  physicalInputContainer: {
+  },  physicalInputContainer: {
     position: 'absolute',
     bottom: 20,
     left: 20,
     right: 20,
     backgroundColor: 'rgba(0, 255, 0, 0.8)',
-    padding: 10, borderRadius: 5,
+    padding: 10,
+    borderRadius: 5,
     zIndex: 1000,
   },
   physicalInputText: {
