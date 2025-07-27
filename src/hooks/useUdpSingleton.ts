@@ -60,6 +60,22 @@ export const useUdpSingleton = () => {
       }
     }, udpStatus.intervalDelay || 100);
   };
+
+  // Immediate send function for real-time control
+  const sendImmediately = (data: string): boolean => {
+    if (!udpStatus.enableSendOverUdp) {
+      console.log('🔧 useUdpSingleton - UDP disabled, not sending immediate data');
+      return false;
+    }
+
+    if (udpManagerRef.current.isReady()) {
+      console.log('⚡ useUdpSingleton - Sending immediate data:', data);
+      return udpManagerRef.current.sendData(data);
+    } else {
+      console.warn('⚡ useUdpSingleton - UDP manager not ready for immediate send');
+      return false;
+    }
+  };
   const stopTransmission = () => {
     if (intervalRef.current) {
       console.log('🔧 useUdpSingleton - Stopping transmission');
@@ -75,11 +91,11 @@ export const useUdpSingleton = () => {
       stopTransmission();
     };
   }, []);
-
   return {
     udpManager: udpManagerRef.current,
     startTransmission,
     stopTransmission,
+    sendImmediately,
     isReady: () => udpManagerRef.current.isReady(),
     sendData: (data: string) => udpManagerRef.current.sendData(data)
   };
