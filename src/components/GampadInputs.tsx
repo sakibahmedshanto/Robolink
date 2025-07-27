@@ -5,11 +5,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Buffer } from 'buffer';
 import { BluetoothSerial, GlobalKeyEvent } from '../specs';
 import { JoystickKeyMap } from '../const/JoystickKeyMap';
-import { useBluetoothStatus, useDTS, useUdpStatus } from '../atoms/configs';
+import { useBluetoothStatus, useDTS } from '../atoms/configs';
 import MyButton from './Button';
 import { primaryColor } from '../const/theme';
 import TopHeaderButtons from './TopHeaderButtons';
-import { sendGamepadData, useUdpSocket } from '../atoms/udp';
+import { useUdpSingleton } from '../hooks/useUdpSingleton';
 
 const styles = StyleSheet.create({
   container: {
@@ -59,13 +59,11 @@ export default function GamepadViewer() {
   const [canEdit, setToggleEdit] = useState(false);
   const [dts, setDTS] = useDTS();
   const [bluetoothStatus, _] = useBluetoothStatus();
-  const [udpStatus, __] = useUdpStatus();
+  const { startTransmission, stopTransmission } = useUdpSingleton();
   const inputsRef = useRef(inputs);
   const dtsRef = useRef(dts);
   const btIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const udpIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataRef = useRef<string>(''); // Track last sent data
-  const { socket: udpSocket } = useUdpSocket();
 
   useEffect(() => {
     inputsRef.current = inputs;
@@ -106,20 +104,13 @@ export default function GamepadViewer() {
   }, [
     bluetoothStatus.isConnected,
     bluetoothStatus.enableSendOverBT,
-    bluetoothStatus.intervalDelay,
-  ]);
+    bluetoothStatus.intervalDelay,  ]);
+  // UDP transmission using singleton
   useEffect(() => {
-    if (!udpStatus.enableSendOverUdp) {
-      if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
-      return;
-    }
-    if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
-
-    udpIntervalRef.current = setInterval(() => {
-      if (!udpStatus.enableSendOverUdp) {
-        if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
-        return;
-      } const inputs = inputsRef.current;
+    console.log('🔧 GamepadInputs - Setting up UDP transmission');
+    
+    const createDataMessage = (): string => {
+      const inputs = inputsRef.current;
       const dts = dtsRef.current;
 
       // Create simple key-value format - much easier for Arduino/ESP32 to parse
@@ -134,31 +125,20 @@ export default function GamepadViewer() {
         if (value !== 0) {
           gamepadValues.push(`${keyName}=${value}`);
         }
-      });      // Format: "LX=0.5,RY=-0.8,A=1,B=0" - super easy to parse with split() and simple string operations
-      const simpleMessage = gamepadValues.join(',');      if (udpSocket) {
-        try {
-          const buffer = Buffer.from(simpleMessage, 'utf8');
-          const targetPort = parseInt(udpStatus.port as any) || 1234;
+      });
 
-          // Check if socket is ready before sending
-          if (typeof udpSocket.send === 'function') {
-            // Send without callback to prevent memory leaks
-            udpSocket.send(buffer, 0, buffer.length, targetPort, '255.255.255.255');
-            console.log('📡 Sent gamepad data via UDP:', simpleMessage);
-          } else {
-            console.warn('UDP socket not ready for sending');
-          }
-        } catch (error) {
-          console.error('UDP send exception:', error);
-        }
-      } else {console.warn('UDP socket not available - ensure UDP is enabled in settings');
-      }
-    }, udpStatus.intervalDelay || 100);
+      // Format: "LX=0.5,RY=-0.8,A=1,B=0" - super easy to parse with split() and simple string operations
+      return gamepadValues.join(',');
+    };
+
+    // Start UDP transmission with the data callback
+    startTransmission(createDataMessage);
 
     return () => {
-      if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+      console.log('🔧 GamepadInputs - Cleaning up UDP transmission');
+      stopTransmission();
     };
-  }, [udpStatus.enableSendOverUdp, udpStatus.intervalDelay, udpStatus.port, udpSocket]);
+  }, []); // Empty dependency array - we only want to set this up once
 
   useEffect(() => {
     const initialInputs = {

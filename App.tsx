@@ -17,6 +17,7 @@ import { BluetoothSerial } from "./src/specs";
 import { useEffect, useState } from 'react';
 import { showToast } from './src/components/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import UdpManager from './src/services/UdpManager';
 
 
 const RootStack = createNativeStackNavigator({
@@ -124,9 +125,7 @@ function App() {
       console.error('Error loading Bluetooth status from storage:', error);
     }
     const isEnabled = await BluetoothSerial.isEnabled();
-    const isConnected = await BluetoothSerial.isConnected();
-
-    setBluetoothStatus((prev:any) => ({
+    const isConnected = await BluetoothSerial.isConnected();    setBluetoothStatus((prev:any) => ({
       ...prev,
       intervalDelay: intervalDelay,
       enableSendOverBT: enableBtTransmission == null ? true : enableBtTransmission === 'true',
@@ -136,20 +135,31 @@ function App() {
   }
 
   const initializeUdpStatus = async () => {
-    let enableUdpTransmission = false;
+    let enableUdpTransmission = true; // Default to true
     let udpIntervalDelay = 100; // Default value
     try {
-      enableUdpTransmission = (await AsyncStorage.getItem('enableUdpTransmission')) == 'false';
+      const storedUdpSetting = await AsyncStorage.getItem('enableUdpTransmission');
+      enableUdpTransmission = storedUdpSetting === null ? true : storedUdpSetting === 'true';
       udpIntervalDelay = parseInt(await AsyncStorage.getItem('udpIntervalDelay') || '100');
       const port = parseInt(await AsyncStorage.getItem('port') || '1234');
+      
       setUdpStatus((prev) => ({
         ...prev,
         enableSendOverUdp: enableUdpTransmission,
         intervalDelay: udpIntervalDelay,
         port
-      }))
+      }));
+
+      // Initialize UDP singleton with loaded config
+      const udpManager = UdpManager.getInstance();
+      await udpManager.initialize({
+        port,
+        enabled: enableUdpTransmission,
+        intervalDelay: udpIntervalDelay
+      });
+      
     } catch (error) {
-      console.error('Error loading Bluetooth status from storage:', error);
+      console.error('Error loading UDP status from storage:', error);
     }
   }
   return (

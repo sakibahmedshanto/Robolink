@@ -259,14 +259,27 @@ const WifiModal = ({ visible, onClose }:{visible:boolean, onClose:() => void}) =
         setUdpStatus((prev)=>({...prev, ipAddress}));
       })
   }, [])
-
   const toggleUdp = async () => {
     const previousEnableUdp = udpStatus.enableSendOverUdp;
+    console.log('🔧 UDP Toggle - Previous state:', previousEnableUdp);
+    console.log('🔧 UDP Toggle - New state will be:', !previousEnableUdp);
+    
     setUdpStatus((prev) => ({
       ...prev,
       enableSendOverUdp: !prev.enableSendOverUdp
     }));
+    
     await AsyncStorage.setItem('enableUdpTransmission', String(!previousEnableUdp));
+    console.log('🔧 UDP Toggle - Saved to AsyncStorage:', String(!previousEnableUdp));
+    
+    // Update UDP singleton immediately
+    const UdpManager = require('../services/UdpManager').default;
+    const udpManager = UdpManager.getInstance();
+    await udpManager.initialize({
+      port: udpStatus.port,
+      enabled: !previousEnableUdp,
+      intervalDelay: udpStatus.intervalDelay
+    });
   }
 
 
