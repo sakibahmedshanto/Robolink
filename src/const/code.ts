@@ -43,7 +43,7 @@ void parseChannels(String data) {
   token = strtok(buf, " ");
 
   if (token == NULL) return;
-  int numChannels = token;
+  int numChannels = atoi(token);
   token = strtok(NULL, " ");
 
   while (token != NULL && index < numChannels) {
@@ -105,7 +105,7 @@ void parseChannels(String data) {
   token = strtok(buf, " ");
 
   if (token == NULL) return;
-  int numChannels = token;
+  int numChannels = atoi(token);
   token = strtok(NULL, " ");
 
   while (token != NULL && index < numChannels) {
