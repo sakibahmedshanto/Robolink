@@ -1,9 +1,9 @@
 /**
  * Button Configuration Modal component for the Custom Joystick Screen
- * Simplified modal for creating buttons with map name and value configuration
+ * Sleek, compact modal for creating buttons with unified map system
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -18,12 +18,9 @@ import { Picker } from '@react-native-picker/picker';
 import { ButtonConfig, ButtonTypeOption } from './types';
 import {
   BUTTON_TYPES,
-  DIRECTION_MAP_OPTIONS,
-  ACTION_MAP_OPTIONS,
-  SLIDER_MAP_OPTIONS,
+  ALL_MAP_OPTIONS,
   COLOR_OPTIONS
 } from './constants';
-import SliderButton from '../SliderButton';
 
 interface ButtonConfigModalProps {
   visible: boolean;
@@ -50,13 +47,28 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
   onSave,
   onCancel,
 }) => {
+  const [isCustomMap, setIsCustomMap] = useState(false);
+  const [customMapName, setCustomMapName] = useState('');
+
+  // Initialize custom map state when modal opens
+  React.useEffect(() => {
+    if (visible) {
+      const isConfigCustom = !ALL_MAP_OPTIONS.includes(config.mapName);
+      setIsCustomMap(isConfigCustom);
+      if (isConfigCustom) {
+        setCustomMapName(config.mapName);
+      } else {
+        setCustomMapName('');
+      }
+    }
+  }, [visible, config.mapName]);
+
   /**
    * Updates a specific config property
    */
   const updateConfig = (key: keyof ButtonConfig, value: any) => {
     onChangeConfig({ ...config, [key]: value });
   };
-
   /**
    * Handles the save action with validation
    */
@@ -65,147 +77,133 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
       Alert.alert('Error', 'Please enter a button label');
       return;
     }
-    if (!config.mapName.trim()) {
-      Alert.alert('Error', 'Please select a map name');
-      return;
-    }
-    onSave();
-  };
 
-  /**
-   * Renders the button type picker
-   */
-  const renderTypePicker = () => (
-    <View style={styles.typePicker}>
-      {BUTTON_TYPES.map((btn: ButtonTypeOption) => (
-        <TouchableOpacity
-          key={btn.type}
-          style={[
-            styles.typeButton,
-            buttonType === btn.type && styles.typeButtonActive,
-          ]}
-          onPress={() => {
-            onChangeButtonType(btn.type as 'direction' | 'action' | 'slider');
-            // Reset map name when type changes
-            const defaultMapName = getDefaultMapName(btn.type as 'direction' | 'action' | 'slider');
-            updateConfig('mapName', defaultMapName);
-          }}
-        >
-          <Text style={styles.typeIcon}>{btn.icon}</Text>
-          <Text style={styles.typeButtonText}>{btn.label}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+    if (isCustomMap) {
+      if (!customMapName.trim()) {
+        Alert.alert('Error', 'Please enter a custom map name');
+        return;
+      }
+      const finalMapName = customMapName.trim().toLowerCase().replace(/\s+/g, '_');
+      // Update the config with the custom map name before saving
+      const updatedConfig = { ...config, mapName: finalMapName };
+      onChangeConfig(updatedConfig);
 
-  /**
-   * Gets default map name for button type
-   */
-  const getDefaultMapName = (type: 'direction' | 'action' | 'slider'): string => {
-    switch (type) {
-      case 'direction':
-        return DIRECTION_MAP_OPTIONS[0];
-      case 'action':
-        return ACTION_MAP_OPTIONS[0];
-      case 'slider':
-        return SLIDER_MAP_OPTIONS[0];
-      default:
-        return '';
+      // Small delay to ensure state is updated before saving
+      setTimeout(() => {
+        onSave();
+      }, 10);
+    } else {
+      onSave();
     }
   };
 
   /**
-   * Gets map options based on button type
+   * Handles map selection
    */
-  const getMapOptions = (): string[] => {
-    switch (buttonType) {
-      case 'direction':
-        return DIRECTION_MAP_OPTIONS;
-      case 'action':
-        return ACTION_MAP_OPTIONS;
-      case 'slider':
-        return SLIDER_MAP_OPTIONS;
-      default:
-        return [];
+  const handleMapChange = (value: string) => {
+    if (value === 'custom') {
+      setIsCustomMap(true);
+      setCustomMapName('');
+    } else {
+      setIsCustomMap(false);
+      updateConfig('mapName', value);
     }
   };
 
-  /**
-   * Renders the color picker
-   */
-  const renderColorPicker = () => (
-    <View style={styles.colorPicker}>
-      {COLOR_OPTIONS.map((color) => (
-        <TouchableOpacity
-          key={color}
-          style={[
-            styles.colorOption,
-            { backgroundColor: color },
-            config.color === color && styles.colorOptionSelected,
-          ]}
-          onPress={() => updateConfig('color', color)}
-        />
-      ))}
-    </View>
-  );
-
-  /**
-   * Renders map name picker
-   */
-  const renderMapNamePicker = () => (
-    <>
-      <Text style={styles.configLabel}>Map Name:</Text>
-      <Picker
-        selectedValue={config.mapName}
-        style={styles.picker}
-        onValueChange={(value) => updateConfig('mapName', value)}
-      >
-        {getMapOptions().map((mapName) => (
-          <Picker.Item
-            key={mapName}
-            label={mapName.replace('_', ' ').toUpperCase()}
-            value={mapName}
-          />
-        ))}
-      </Picker>
-    </>
-  );
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onCancel}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.modalTitle}>
-              {isEditMode ? 'Edit Button' : 'Create New Button'}
-            </Text>
+  <Modal
+    visible={visible}
+    animationType="fade"
+    transparent={true}
+    onRequestClose={onCancel}
+  >
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.modalTitle}>
+            {isEditMode ? 'Edit Button' : 'Create Button'}
+          </Text>
 
+          {/* Button Type Pills */}
+          <View style={styles.typePicker}>
+            {BUTTON_TYPES.map((btn: ButtonTypeOption) => (
+              <TouchableOpacity
+                key={btn.type}
+                style={[
+                  styles.typePill,
+                  buttonType === btn.type && styles.typePillActive,
+                ]}
+                onPress={() => onChangeButtonType(btn.type)}
+              >
+                <Text style={styles.typeIcon}>{btn.icon}</Text>
+                <Text style={[
+                  styles.typePillText,
+                  buttonType === btn.type && styles.typePillTextActive
+                ]}>{btn.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-            <Text style={styles.configLabel}>Button Type:</Text>
-            {renderTypePicker()}
-
-         
-            <Text style={styles.configLabel}>Button Label:</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter button label"
-              value={label}
-              onChangeText={onChangeLabel}
-              maxLength={15}
-            />
-
-            {/* Map Name Picker */}
-            {renderMapNamePicker()}
-
-            {/* Map Value Input */}
-            <Text style={styles.configLabel}>Map Value:</Text>
-            <View style={styles.valueInputContainer}>
+          {/* Compact Form Row 1: Label + Map */}
+          <View style={styles.formRow}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Label</Text>
               <TextInput
-                style={styles.valueInput}
+                style={styles.compactInput}
+                placeholder="Button name"
+                value={label}
+                onChangeText={onChangeLabel}
+                maxLength={12}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Map</Text>
+              {!isCustomMap ? (
+                <Picker
+                  selectedValue={config.mapName}
+                  style={styles.compactPicker}
+                  onValueChange={handleMapChange}
+                >
+                  {ALL_MAP_OPTIONS.map((mapName) => (
+                    <Picker.Item
+                      key={mapName}
+                      label={mapName === 'custom' ? '+ Custom' : mapName.toUpperCase()}
+                      value={mapName}
+                    />
+                  ))}
+                </Picker>
+              ) : (
+                <View style={styles.customMapContainer}>
+                  <TextInput
+                    style={styles.compactInput}
+                    placeholder="custom_name"
+                    value={customMapName}
+                    onChangeText={setCustomMapName}
+                    maxLength={15}
+                  />
+                  <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => setIsCustomMap(false)}
+                  >
+                    <Text style={styles.backButtonText}>←</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Compact Form Row 2: Value + Size */}
+          <View style={styles.formRow}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Value</Text>
+              <TextInput
+                style={styles.compactInput}
                 placeholder="100"
                 value={config.mapValue.toString()}
                 onChangeText={(text) => {
@@ -215,214 +213,252 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
                 keyboardType="numeric"
                 maxLength={4}
               />
-              <Text style={styles.valueHint}>
-                {buttonType === 'slider' ? '(0-1000 range)' : '(Typically 100)'}
-              </Text>
             </View>
 
-            {/* Size Slider */}
-            <Text style={styles.configLabel}>Button Size:</Text>
-            <View style={styles.sliderContainer}>
-              <Text style={styles.sliderValue}>{config.size}</Text>
-              <SliderButton
-                value={config.size}
-                minimumValue={40}
-                maximumValue={120}
-                onValueChange={(value: number) => updateConfig('size', Math.round(value))}
-                label="Size"
-              />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Size: {config.size}</Text>
+              <View style={styles.sliderContainer}>
+                <TouchableOpacity
+                  style={styles.sliderButton}
+                  onPress={() => updateConfig('size', Math.max(30, config.size - 10))}
+                >
+                  <Text style={styles.sliderButtonText}>-</Text>
+                </TouchableOpacity>
+                <View style={[styles.sliderTrack, { width: config.size * 1.5 }]} />
+                <TouchableOpacity
+                  style={styles.sliderButton}
+                  onPress={() => updateConfig('size', Math.min(100, config.size + 10))}
+                >
+                  <Text style={styles.sliderButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+          </View>
 
-            {/* Color Picker */}
-            <Text style={styles.configLabel}>Button Color:</Text>
-            {renderColorPicker()}
+          {/* Compact Color Picker */}
+          <View style={styles.colorSection}>
+            <Text style={styles.label}>Color</Text>
+            <View style={styles.colorPicker}>
+              {COLOR_OPTIONS.map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  style={[
+                    styles.colorDot,
+                    { backgroundColor: color },
+                    config.color === color && styles.colorDotSelected,
+                  ]}
+                  onPress={() => updateConfig('color', color)}
+                />
+              ))}
+             </View>
+          </View>
+        </ScrollView>
 
-            {/* Modal Buttons */}
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={onCancel}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonPrimary]}
-                onPress={handleSave}
-              >
-                <Text style={[styles.modalButtonText, styles.modalButtonPrimaryText]}>
-                  {isEditMode ? 'Update' : 'Create'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+        {/* Action Buttons - Fixed at bottom */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveButtonText}>
+              {isEditMode ? 'Update' : 'Create'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </View>
+  </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },  modalContent: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 20,
+    width: '85%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: '#333',
+    maxHeight: '85%', // Increased from 80% to show more content
+    minHeight: 300, // Ensure minimum height for all content
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 16,
+  },  typePicker: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 8,
+    minHeight: 40, // Ensure minimum height for visibility
+  },
+  typePill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10, // Increased padding
+    borderRadius: 20,
+    backgroundColor: '#2a2a2a',
+    borderWidth: 1,
+    borderColor: '#444',
+    gap: 4,
+    minHeight: 40, // Ensure minimum height
+  },
+  typePillActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#3b82f6',
+  },
+  typeIcon: {
+    fontSize: 14,
+  },
+  typePillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#888',
+  },
+  typePillTextActive: {
+    color: '#fff',
+  },
+  formRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    gap: 12,
+  },
+  inputGroup: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ccc',
+    marginBottom: 4,
+  },
+  compactInput: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    color: '#fff',
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  compactPicker: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 8,
+    height: 40,
+    color: '#fff',
+  },
+  customMapContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backButton: {
+    backgroundColor: '#444',
+    borderRadius: 6,
+    width: 30,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 24,
-    width: '90%',
-    maxHeight: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 25,
-    elevation: 15,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 24,
-    textAlign: 'center',
-    color: '#1e293b',
-  },
-  configLabel: {
+  backButtonText: {
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 10,
-    marginTop: 20,
-    color: '#374151',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 8,
-    backgroundColor: '#f9fafb',
-    fontSize: 16,
-    color: '#374151',
-  },
-  typePicker: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 10,
-    marginBottom: 8,
-  },
-  typeButton: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 10,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  typeButtonActive: {
-    backgroundColor: '#dbeafe',
-    borderColor: '#2563eb',
-  },
-  typeIcon: {
-    fontSize: 20,
-    marginBottom: 6,
-  },
-  typeButtonText: {
-    color: '#374151',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  valueInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
-  valueInput: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    backgroundColor: '#f9fafb',
-    fontSize: 16,
-    color: '#374151',
-    width: 80,
-    textAlign: 'center',
-  },
-  valueHint: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontStyle: 'italic',
+    fontWeight: 'bold',
   },
   sliderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
-    marginBottom: 8,
+    gap: 8,
   },
-  sliderValue: {
+  sliderButton: {
+    backgroundColor: '#444',
+    borderRadius: 6,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sliderButtonText: {
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    minWidth: 35,
+    fontWeight: 'bold',
+  },
+  sliderTrack: {
+    height: 4,
+    backgroundColor: '#2563eb',
+    borderRadius: 2,
+    minWidth: 20,
+  },
+  colorSection: {
+    marginBottom: 16,
   },
   colorPicker: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 8,
+    gap: 8,
   },
-  colorOption: {
-    width: 45,
-    height: 45,
-    borderRadius: 10,
-    borderWidth: 3,
+  colorDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
     borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
-  colorOptionSelected: {
-    borderColor: '#1e293b',
-    shadowColor: '#1e293b',
-    shadowOpacity: 0.4,
-  },
-  picker: {
-    height: 50,
-    marginBottom: 8,
-    backgroundColor: '#f9fafb',
-    borderRadius: 10,
-  },
-  modalButtons: {
+  colorDotSelected: {
+    borderColor: '#fff',
+    shadowColor: '#fff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
+  },  actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 30,
-    gap: 15,
+    gap: 12,
+    marginTop: 12, // Increased margin for better separation
+    paddingTop: 8, // Add padding for visual separation
+    borderTopWidth: 1,
+    borderTopColor: '#333', // Add subtle separator line
   },
-  modalButton: {
+  cancelButton: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
-    paddingVertical: 14,
-    borderRadius: 10,
+    backgroundColor: '#444',
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
   },
-  modalButtonPrimary: {
-    backgroundColor: '#2563eb',
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  modalButtonText: {
-    color: '#374151',
+  cancelButtonText: {
+    color: '#fff',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 14,
   },
-  modalButtonPrimaryText: {
-    color: '#ffffff',
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#2563eb',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },  scrollContainer: {
+    flex: 1,
+    maxHeight: '85%', // Ensure scroll area doesn't take full height
+  },
+  scrollContent: {
+    paddingBottom: 10,
+    flexGrow: 1, // Allow content to grow as needed
   },
 });
 

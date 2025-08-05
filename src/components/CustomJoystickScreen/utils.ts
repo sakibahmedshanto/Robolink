@@ -4,7 +4,7 @@
  */
 
 import { JoystickButton, ButtonConfig } from './types';
-import { DEFAULT_BUTTON_CONFIG, DIRECTION_MAP_OPTIONS, ACTION_MAP_OPTIONS, SLIDER_MAP_OPTIONS } from './constants';
+import { DEFAULT_BUTTON_CONFIG, ALL_MAP_OPTIONS } from './constants';
 import { getSafeDefaultPosition, constrainToScreenBounds } from './screenBounds';
 
 /**
@@ -153,11 +153,11 @@ export const getButtonConfig = (button: JoystickButton): ButtonConfig => {
 export const getDefaultMapName = (type: 'direction' | 'action' | 'slider'): string => {
   switch (type) {
     case 'direction':
-      return DIRECTION_MAP_OPTIONS[0];
+      return 'forward_backward';
     case 'action':
-      return ACTION_MAP_OPTIONS[0];
+      return 'fire';
     case 'slider':
-      return SLIDER_MAP_OPTIONS[0];
+      return 'speed';
     default:
       return 'unknown';
   }
