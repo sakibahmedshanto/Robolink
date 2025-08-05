@@ -15,14 +15,13 @@ import {
   Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { gestureHandlerRootHOC } from 'react-native-gesture-handler';
 import { ButtonConfig, ButtonTypeOption } from './types';
-import { 
-  BUTTON_TYPES, 
-  DIRECTION_MAP_OPTIONS, 
-  ACTION_MAP_OPTIONS, 
-  SLIDER_MAP_OPTIONS, 
-  COLOR_OPTIONS 
+import {
+  BUTTON_TYPES,
+  DIRECTION_MAP_OPTIONS,
+  ACTION_MAP_OPTIONS,
+  SLIDER_MAP_OPTIONS,
+  COLOR_OPTIONS
 } from './constants';
 import SliderButton from '../SliderButton';
 
@@ -162,100 +161,15 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
         onValueChange={(value) => updateConfig('mapName', value)}
       >
         {getMapOptions().map((mapName) => (
-          <Picker.Item 
-            key={mapName} 
-            label={mapName.replace('_', ' ').toUpperCase()} 
-            value={mapName} 
+          <Picker.Item
+            key={mapName}
+            label={mapName.replace('_', ' ').toUpperCase()}
+            value={mapName}
           />
         ))}
       </Picker>
     </>
   );
-
-  // Wrap the modal content with gesture handler
-  const ModalContent = gestureHandlerRootHOC(() => (
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={styles.modalTitle}>
-            {isEditMode ? 'Edit Button' : 'Create New Button'}
-          </Text>
-
-          {/* Button Type Picker */}
-          <Text style={styles.configLabel}>Button Type:</Text>
-          {renderTypePicker()}
-
-          {/* Label Input */}
-          <Text style={styles.configLabel}>Button Label:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter button label"
-            value={label}
-            onChangeText={onChangeLabel}
-            maxLength={15}
-          />
-
-          {/* Map Name Picker */}
-          {renderMapNamePicker()}
-
-          {/* Map Value Input */}
-          <Text style={styles.configLabel}>Map Value:</Text>
-          <View style={styles.valueInputContainer}>
-            <TextInput
-              style={styles.valueInput}
-              placeholder="100"
-              value={config.mapValue.toString()}
-              onChangeText={(text) => {
-                const value = parseInt(text) || 0;
-                updateConfig('mapValue', Math.max(0, Math.min(1000, value)));
-              }}
-              keyboardType="numeric"
-              maxLength={4}
-            />
-            <Text style={styles.valueHint}>
-              {buttonType === 'slider' ? '(0-1000 range)' : '(Typically 100)'}
-            </Text>
-          </View>
-
-          {/* Size Slider */}
-          <Text style={styles.configLabel}>Button Size:</Text>
-          <View style={styles.sliderContainer}>
-            <Text style={styles.sliderValue}>{config.size}</Text>
-            <SliderButton
-              value={config.size}
-              minimumValue={40}
-              maximumValue={120}
-              onValueChange={(value: number) => updateConfig('size', Math.round(value))}
-              label="Size"
-            />
-          </View>
-
-          {/* Color Picker */}
-          <Text style={styles.configLabel}>Button Color:</Text>
-          {renderColorPicker()}
-
-          {/* Modal Buttons */}
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={onCancel}
-            >
-              <Text style={styles.modalButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.modalButtonPrimary]}
-              onPress={handleSave}
-            >
-              <Text style={[styles.modalButtonText, styles.modalButtonPrimaryText]}>
-                {isEditMode ? 'Update' : 'Create'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
-    </View>
-  ));
-
   return (
     <Modal
       visible={visible}
@@ -263,7 +177,86 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
       transparent={true}
       onRequestClose={onCancel}
     >
-      <ModalContent />
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={styles.modalTitle}>
+              {isEditMode ? 'Edit Button' : 'Create New Button'}
+            </Text>
+
+
+            <Text style={styles.configLabel}>Button Type:</Text>
+            {renderTypePicker()}
+
+         
+            <Text style={styles.configLabel}>Button Label:</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter button label"
+              value={label}
+              onChangeText={onChangeLabel}
+              maxLength={15}
+            />
+
+            {/* Map Name Picker */}
+            {renderMapNamePicker()}
+
+            {/* Map Value Input */}
+            <Text style={styles.configLabel}>Map Value:</Text>
+            <View style={styles.valueInputContainer}>
+              <TextInput
+                style={styles.valueInput}
+                placeholder="100"
+                value={config.mapValue.toString()}
+                onChangeText={(text) => {
+                  const value = parseInt(text) || 0;
+                  updateConfig('mapValue', Math.max(0, Math.min(1000, value)));
+                }}
+                keyboardType="numeric"
+                maxLength={4}
+              />
+              <Text style={styles.valueHint}>
+                {buttonType === 'slider' ? '(0-1000 range)' : '(Typically 100)'}
+              </Text>
+            </View>
+
+            {/* Size Slider */}
+            <Text style={styles.configLabel}>Button Size:</Text>
+            <View style={styles.sliderContainer}>
+              <Text style={styles.sliderValue}>{config.size}</Text>
+              <SliderButton
+                value={config.size}
+                minimumValue={40}
+                maximumValue={120}
+                onValueChange={(value: number) => updateConfig('size', Math.round(value))}
+                label="Size"
+              />
+            </View>
+
+            {/* Color Picker */}
+            <Text style={styles.configLabel}>Button Color:</Text>
+            {renderColorPicker()}
+
+            {/* Modal Buttons */}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={onCancel}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={handleSave}
+              >
+                <Text style={[styles.modalButtonText, styles.modalButtonPrimaryText]}>
+                  {isEditMode ? 'Update' : 'Create'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </View>
     </Modal>
   );
 };

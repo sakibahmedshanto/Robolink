@@ -5,7 +5,7 @@
  * Fixed to horizontal orientation with gamepad-style layout
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Alert, StatusBar, Platform, Text } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -189,11 +189,11 @@ const CustomJoystickScreen: React.FC = () => {
       ]
     );
   };
-
   /**
    * Adds a new button to the layout
    */
-  const handleAddButton = () => {    if (!newLabel.trim()) {
+  const handleAddButton = useCallback(() => {
+    if (!newLabel.trim()) {
       Alert.alert('Error', 'Please enter a button label');
       return;
     }
@@ -207,7 +207,7 @@ const CustomJoystickScreen: React.FC = () => {
 
     // Save after a short delay to ensure state is updated
     setTimeout(() => handleSaveCurrentLayout(), 100);
-  };
+  }, [newLabel, newType, buttonConfig, layout, handleSaveCurrentLayout]);
 
   /**
    * Removes a button from the layout
@@ -251,11 +251,10 @@ const CustomJoystickScreen: React.FC = () => {
     setButtonConfig(getButtonConfig(button));
     setShowEditModal(true);
   };
-
   /**
    * Updates a button configuration
    */
-  const handleUpdateButton = () => {
+  const handleUpdateButton = useCallback(() => {
     if (!newLabel.trim()) {
       Alert.alert('Error', 'Please enter a button label');
       return;
@@ -269,7 +268,7 @@ const CustomJoystickScreen: React.FC = () => {
     setEditingIndex(null);
     setNewLabel('');
     handleSaveCurrentLayout();
-  };
+  }, [newLabel, editingIndex, layout, newType, buttonConfig, handleSaveCurrentLayout]);
 
   /**
    * Updates slider value for a button
@@ -301,13 +300,12 @@ const CustomJoystickScreen: React.FC = () => {
     );
   };
 
-
-  const handleCancelModal = () => {
+  const handleCancelModal = useCallback(() => {
     setShowAddModal(false);
     setShowEditModal(false);
     setNewLabel('');
     setButtonConfig(DEFAULT_BUTTON_CONFIG);
-  };
+  }, []);
 
   const handleSaveLayoutModal = (name: string) => {
     handleSaveLayoutWithName(name);
@@ -458,7 +456,13 @@ const CustomJoystickScreen: React.FC = () => {
     }
     */
   };
-
+  const handleModalSave = useCallback(() => {
+    if (showEditModal) {
+      handleUpdateButton();
+    } else {
+      handleAddButton();
+    }
+  }, [showEditModal, handleUpdateButton, handleAddButton]);
 
   return (
     <View style={styles.container}>
@@ -487,7 +491,6 @@ const CustomJoystickScreen: React.FC = () => {
         onJoystickMove={handleJoystickMove}
         onSliderChange={handleSliderChange}
       />
-
       <ButtonConfigModal
         visible={showAddModal || showEditModal}
         isEditMode={showEditModal}
@@ -497,7 +500,7 @@ const CustomJoystickScreen: React.FC = () => {
         onChangeLabel={setNewLabel}
         onChangeButtonType={setNewType}
         onChangeConfig={setButtonConfig}
-        onSave={showEditModal ? handleUpdateButton : handleAddButton}
+        onSave={handleModalSave}
         onCancel={handleCancelModal}
       />
 
