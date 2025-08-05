@@ -76,7 +76,7 @@ const CustomJoystickScreen: React.FC = () => {
   // Real-time input handling - no buffering, immediate response
   const lastInputValueRef = useRef<{ [key: string]: any }>({});
   const lastAnalogSendTimeRef = useRef<{ [key: string]: number }>({});
-  
+
   const ANALOG_SEND_INTERVAL = 50; // Only limit analog inputs to 20fps
   const BUTTON_DEAD_ZONE = 0.1; // Threshold for analog inputs to be considered "pressed"
 
@@ -336,7 +336,7 @@ const CustomJoystickScreen: React.FC = () => {
 
       // Detect if this is a button input (numeric keys are buttons)
       const isButton = key.match(/^\d+$/);
-      
+
       if (isButton) {
         // BUTTONS: Send immediately on any change (press or release)
         if (newValue !== lastValue) {
@@ -344,7 +344,7 @@ const CustomJoystickScreen: React.FC = () => {
           lastInputValueRef.current[key] = newValue;
           hasButtonChanges = true;
           console.log(`🎮 [CUSTOM REALTIME] Button ${key}: ${lastValue} → ${newValue}`);
-          
+
           // Immediately trigger button action
           handleButtonPress(`physical_btn_${key}`, newValue === 1);
         }
@@ -352,20 +352,20 @@ const CustomJoystickScreen: React.FC = () => {
         // ANALOG INPUTS: Rate limit but still responsive
         const lastSendTime = lastAnalogSendTimeRef.current[key] || 0;
         const timeSinceLastSend = currentTime - lastSendTime;
-        
+
         // Send if: significant change OR enough time has passed
         const significantChange = Math.abs((lastValue || 0) - newValue) > BUTTON_DEAD_ZONE;
         const timeToSend = timeSinceLastSend >= ANALOG_SEND_INTERVAL;
-        
+
         if (significantChange || timeToSend) {
           updates[key] = newValue;
           lastInputValueRef.current[key] = newValue;
           lastAnalogSendTimeRef.current[key] = currentTime;
           hasAnalogChanges = true;
-          
+
           // Immediately trigger analog action
           handleJoystickMove(`physical_${key}`, newValue / 1000, 0); // Scale back from -1000/1000 to -1/1
-          
+
           if (significantChange) {
             console.log(`🕹️ [CUSTOM REALTIME] Analog ${key}: ${lastValue} → ${newValue} (significant change)`);
           }
@@ -376,13 +376,13 @@ const CustomJoystickScreen: React.FC = () => {
     // Update display state immediately if we have any changes
     if (hasButtonChanges || hasAnalogChanges) {
       setGamepadInputs(prev => ({ ...prev, ...updates }));
-      
+
       // Update last input indicator for visual feedback
       const activeInputs = Object.keys(updates).filter(key => updates[key] !== 0);
       if (activeInputs.length > 0) {
         setLastPhysicalInput(`Physical Input: ${activeInputs.join(', ')}`);
       }
-      
+
       if (hasButtonChanges) {
         console.log('⚡ [CUSTOM REALTIME] Button changes applied immediately');
       }
@@ -476,6 +476,9 @@ const CustomJoystickScreen: React.FC = () => {
         savedLayouts={savedLayouts}
         onLoadLayout={handleLoadLayout}
         onDeleteLayout={handleDeleteLayout}
+        buttonStates={buttonStates}
+        joystickData={joystickData}
+        formatMessage={formatMessage}
       />
       <Canvas
         layout={layout}
@@ -507,25 +510,13 @@ const CustomJoystickScreen: React.FC = () => {
         layoutName={saveLayoutName}
         onChangeLayoutName={setSaveLayoutName}
         onSave={handleSaveLayoutModal}
-        onCancel={handleCancelSaveModal}
-      />
-
+        onCancel={handleCancelSaveModal} />  
       {/* Display physical input indicator */}
       {lastPhysicalInput ? (
         <View style={styles.physicalInputContainer}>
           <Text style={styles.physicalInputText}>{lastPhysicalInput}</Text>
         </View>
       ) : null}
-
-      {/* Display current data transmission */}
-      <View style={styles.dataTransmissionContainer}>
-        <Text style={styles.dataTransmissionText}>
-          📡 Data: {formatMessage({ ...buttonStates, ...joystickData })}
-        </Text>
-        <Text style={styles.dataTransmissionText}>
-          🎮 Buttons: {Object.keys(buttonStates).length} | 🕹️ Analog: {Object.keys(joystickData).length}
-        </Text>
-      </View>
     </View>
   );
 };
@@ -535,7 +526,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a0a', // Very dark background to match gamepad image
     // Remove paddingTop since we're handling immersive mode
-  },  physicalInputContainer: {
+  }, physicalInputContainer: {
     position: 'absolute',
     bottom: 20,
     left: 20,
@@ -549,22 +540,6 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 12,
     fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  dataTransmissionContainer: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 10,
-    borderRadius: 5,
-    zIndex: 1000,
-  },
-  dataTransmissionText: {
-    color: '#fff',
-    fontSize: 10,
-    fontFamily: 'monospace',
     textAlign: 'center',
   },
 });

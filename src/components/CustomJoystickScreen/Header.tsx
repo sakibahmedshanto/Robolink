@@ -19,6 +19,10 @@ interface HeaderProps {
     savedLayouts?: SavedLayout[];
     onLoadLayout?: (layout: SavedLayout) => void;
     onDeleteLayout?: (layoutId: string) => void;
+    // Data transmission props
+    buttonStates?: { [key: string]: number };
+    joystickData?: { [key: string]: number };
+    formatMessage?: (data: any) => string;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -31,11 +35,13 @@ const Header: React.FC<HeaderProps> = ({
     onSaveLayout,
     savedLayouts = [],
     onLoadLayout,
-    onDeleteLayout
+    onDeleteLayout,
+    // Data transmission props
+    buttonStates = {},
+    joystickData = {},
+    formatMessage
 }) => {
-    const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
-
-    return (
+    const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);    return (
         <View style={styles.header}>
             <View style={styles.leftSection}>
                 <TouchableOpacity
@@ -45,6 +51,15 @@ const Header: React.FC<HeaderProps> = ({
                     <Text style={styles.headerTitle}>{currentLayoutName}</Text>
                     <Text style={styles.dropdownIcon}>▼</Text>
                 </TouchableOpacity>
+
+                {/* Data transmission display - moved to left section */}
+                {formatMessage && (
+                    <View style={styles.dataTransmissionContainer}>
+                        <Text style={styles.dataTransmissionText}>
+                            📡 {formatMessage({ ...buttonStates, ...joystickData })}
+                        </Text>
+                    </View>
+                )}
 
                 {onShowInstructions ? (
                     <TouchableOpacity
@@ -70,7 +85,7 @@ const Header: React.FC<HeaderProps> = ({
                     onPress={onToggleEditMode}
                 >
                     <Text style={styles.headerButtonText}>
-                        {isEditMode ? 'Done' : 'Edit'}
+                        {isEditMode ? 'Save' : 'Edit'}
                     </Text>
                 </TouchableOpacity>
                 {(isEditMode && onSaveLayout) ? (
@@ -78,7 +93,7 @@ const Header: React.FC<HeaderProps> = ({
                         style={[styles.headerButton, styles.saveButton]}
                         onPress={onSaveLayout}
                     >
-                        <Text style={styles.headerButtonText}>Save</Text>
+                        <Text style={styles.headerButtonText}>Save As</Text>
                     </TouchableOpacity>
                 ) : null}
                 <TouchableOpacity
@@ -145,71 +160,65 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        backgroundColor: '#2a2a2a',
+        paddingVertical: 12,
+        backgroundColor: '#170F11', // Same as GamepadInputScreen
         borderBottomWidth: 1,
-        borderBottomColor: '#444444',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 3,
+        borderBottomColor: '#ffffff2a',
     },
     leftSection: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1,
     },
     headerTitle: {
         fontSize: 18,
-        fontWeight: '600',
-        color: '#ffffff',
+        fontWeight: 'bold',
+        color: '#fff',
     },
     helpButton: {
-        backgroundColor: '#FFD700',
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        backgroundColor: '#ffffff2a',
+        width: 32,
+        height: 32,
+        borderRadius: 6,
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 12,
-    }, helpButtonText: {
-        color: '#000000',
-        fontSize: 14,
+    },
+    helpButtonText: {
+        color: '#fff',
+        fontSize: 16,
         fontWeight: 'bold',
     },
     headerControls: {
         flexDirection: 'row',
-        gap: 8,
+        gap: 6,
+        alignItems: 'center',
     },
     headerButton: {
-        backgroundColor: '#4a4a4a',
+        backgroundColor: '#ffffff2a',
         paddingHorizontal: 12,
-        paddingVertical: 6,
+        paddingVertical: 8,
         borderRadius: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 2,
-    }, headerButtonText: {
-        color: '#ffffff',
+    },
+    headerButtonText: {
+        color: '#fff',
         fontWeight: '600',
-        fontSize: 12,
+        fontSize: 14,
     },
     saveButton: {
-        backgroundColor: '#16a34a',
+        backgroundColor: '#D72638', // Primary color for save button
     },
     layoutDropdownButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 6,
+        backgroundColor: '#ffffff2a',
     },
     dropdownIcon: {
-        color: '#ffffff',
-        fontSize: 12,
+        color: '#fff',
+        fontSize: 14,
         marginLeft: 8,
     },
     modalOverlay: {
@@ -220,22 +229,19 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     dropdownContainer: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: '#170F11',
         borderRadius: 8,
         padding: 16,
         maxHeight: 300,
         width: '100%',
         maxWidth: 300,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 5,
+        borderWidth: 1,
+        borderColor: '#ffffff2a',
     },
     dropdownTitle: {
-        color: '#ffffff',
+        color: '#fff',
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: 'bold',
         marginBottom: 12,
         textAlign: 'center',
     },
@@ -244,7 +250,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 4,
         borderBottomWidth: 1,
-        borderBottomColor: '#444444',
+        borderBottomColor: '#ffffff2a',
     },
     dropdownItemButton: {
         flex: 1,
@@ -252,11 +258,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
     },
     dropdownItemText: {
-        color: '#ffffff',
+        color: '#fff',
         fontSize: 14,
     },
     deleteButton: {
-        backgroundColor: '#ff4444',
+        backgroundColor: '#D72638',
         width: 24,
         height: 24,
         borderRadius: 12,
@@ -265,15 +271,28 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     deleteButtonText: {
-        color: '#ffffff',
+        color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
     },
     emptyText: {
-        color: '#999999',
+        color: '#ffffff2a',
         fontSize: 14,
         textAlign: 'center',
         paddingVertical: 20,
+    },
+    dataTransmissionContainer: {
+        backgroundColor: '#ffffff2a',
+        padding: 8,
+        marginLeft: 12,
+        borderRadius: 6,
+        maxWidth: 200,
+    },
+    dataTransmissionText: {
+        color: '#fff',
+        fontSize: 10,
+        fontFamily: 'monospace',
+        textAlign: 'left',
     },
 });
 
