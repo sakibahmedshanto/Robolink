@@ -41,9 +41,9 @@ const SliderButton: React.FC<SliderButtonProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+    backgroundColor: 'rgba(39, 88, 180, 0.54)',
     borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.3)',
+    borderColor: 'rgba(235, 37, 37, 0.51)',
     borderRadius: 12,
     padding: 12,
     margin: 4,
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   value: {
-    color: '#2563eb',
+    color: '#eb3525ff',
     fontWeight: 'bold',
     fontSize: 12,
     backgroundColor: 'rgba(37, 99, 235, 0.2)',
