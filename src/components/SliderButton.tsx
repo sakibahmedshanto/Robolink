@@ -19,35 +19,73 @@ const SliderButton: React.FC<SliderButtonProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>{label}: {value}</Text>
-      <Slider
-        style={{ width: 120 }}
+      <View style={styles.labelContainer}>
+        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.value}>{Math.round(value)}</Text>
+      </View>
+      <View style={styles.sliderContainer}>
+        <Slider
+        style={styles.slider}
         minimumValue={minimumValue}
         maximumValue={maximumValue}
         value={value}
         onValueChange={onValueChange}
-        minimumTrackTintColor="#fff"
-        maximumTrackTintColor="#888"
-        thumbTintColor="#D72638"
+        minimumTrackTintColor="#2563eb"
+        maximumTrackTintColor="rgba(255, 255, 255, 0.2)"
+        thumbTintColor="#fff"
       />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F9A825',
-    padding: 20,
-    borderRadius: 40,
-    margin: 8,
-    minWidth: 120,
-    alignItems: 'center',
+    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.3)',
+    borderRadius: 12,
+    padding: 12,
+    margin: 4,
+    minWidth: 140,
+    minHeight: 60,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  text: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
+  labelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  label: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
+    opacity: 0.9,
+  },
+  value: {
+    color: '#2563eb',
+    fontWeight: 'bold',
+    fontSize: 12,
+    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    minWidth: 28,
+    textAlign: 'center',
+  },
+  sliderContainer: {
+    paddingHorizontal: 4,
+  },
+  slider: {
+    width: '100%',
+    height: 20,
   },
 });
 
