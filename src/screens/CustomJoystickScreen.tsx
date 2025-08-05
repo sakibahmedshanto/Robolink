@@ -512,11 +512,11 @@ const CustomJoystickScreen: React.FC = () => {
         onSave={handleSaveLayoutModal}
         onCancel={handleCancelSaveModal} />  
       {/* Display physical input indicator */}
-      {lastPhysicalInput ? (
+      {/* {lastPhysicalInput ? (
         <View style={styles.physicalInputContainer}>
           <Text style={styles.physicalInputText}>{lastPhysicalInput}</Text>
         </View>
-      ) : null}
+      ) : null} */}
     </View>
   );
 };

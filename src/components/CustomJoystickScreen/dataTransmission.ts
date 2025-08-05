@@ -182,7 +182,7 @@ export const useCustomJoystickData = () => {
 
   // Format message function for debugging and display
   const formatMessage = (data: any) => {
-    // Create simple key-value format - same as GampadInputs
+    // Create simple key-value format for debugging
     const values: string[] = [];
     
     Object.keys(data).forEach(key => {

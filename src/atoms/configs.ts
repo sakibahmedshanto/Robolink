@@ -14,8 +14,7 @@ type UdpStatus = {
     port: number,
     intervalDelay: number,
 }
-// Data To Send
-const DTSAtom = atom<{[key: string]: any}>({})
+
 const mediumAtom = atom<'bt' | 'udp'>('bt')
 const bluetoothStatusAtom = atom<BluetoothStatus>({
     enableSendOverBT: true,
@@ -34,7 +33,6 @@ const udpStatusAtom = atom<UdpStatus>({
 })
 
 
-export const useDTS = () => useAtom(DTSAtom)
 export const useMedium = () => useAtom(mediumAtom)
 export const useBluetoothStatus = () => useAtom(bluetoothStatusAtom)
 export const useUdpStatus = () => useAtom(udpStatusAtom)

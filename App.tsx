@@ -9,7 +9,6 @@ import { createStaticNavigation, } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import GamepadInputScreen from './src/screens/GamepadInputScreen';
 import CustomJoystickScreen from './src/screens/CustomJoystickScreen';
 import HeaderRightButtons from './src/components/HeaderRightButtons';
 import { useBluetoothStatus, useUdpStatus } from './src/atoms/configs';
@@ -21,7 +20,7 @@ import UdpManager from './src/services/UdpManager';
 
 
 const RootStack = createNativeStackNavigator({
-  initialRouteName: 'GamepadInputs',
+  initialRouteName: 'CustomJoystick',
   screenOptions: {
     headerStyle: {
       backgroundColor: '#D72638',
@@ -33,13 +32,6 @@ const RootStack = createNativeStackNavigator({
     headerRight: () => <HeaderRightButtons />
   },
   screens: {
-    GamepadInputs: {
-      screen: GamepadInputScreen,
-      options: {
-        title: 'Gamepad Inputs',
-        headerShown: true,
-      },
-    },
     CustomJoystick: {
       screen: CustomJoystickScreen,
       options: {
