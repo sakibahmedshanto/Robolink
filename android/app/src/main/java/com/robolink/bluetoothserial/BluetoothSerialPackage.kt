@@ -1,4 +1,4 @@
-package com.robolink.bluetoothserial
+package com.robolinkbd.bluetoothserial
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

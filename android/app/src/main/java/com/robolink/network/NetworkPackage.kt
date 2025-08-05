@@ -1,10 +1,10 @@
-package com.robolink.network
+package com.robolinkbd.network
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager
-import com.robolink.network.NetworkModule
+import com.robolinkbd.network.NetworkModule
 
 class NetworkPackage : ReactPackage {
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {

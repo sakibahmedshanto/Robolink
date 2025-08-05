@@ -1,4 +1,4 @@
-package com.robolink
+package com.robolinkbd
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -13,7 +13,7 @@ import android.view.View
 import android.view.WindowManager
 import android.os.Build
 
-import com.robolink.globalkeyevent.GlobalKeyEventModule
+import com.robolinkbd.globalkeyevent.GlobalKeyEventModule
 
 class MainActivity : ReactActivity() {
     /**
@@ -21,7 +21,7 @@ class MainActivity : ReactActivity() {
      * rendering of the component.
      */
     override fun getMainComponentName(): String {
-        return "robolink"
+        return "robolinkbd"
     }
       override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(null)

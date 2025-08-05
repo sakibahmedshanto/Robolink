@@ -1,4 +1,4 @@
-package com.robolink.bluetoothserial
+package com.robolinkbd.bluetoothserial
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice

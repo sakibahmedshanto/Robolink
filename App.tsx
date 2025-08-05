@@ -115,9 +115,10 @@ function App() {
       intervalDelay = parseInt(await AsyncStorage.getItem('btIntervalDelay') || '100');
     } catch (error) {
       console.error('Error loading Bluetooth status from storage:', error);
-    }
-    const isEnabled = await BluetoothSerial.isEnabled();
-    const isConnected = await BluetoothSerial.isConnected();    setBluetoothStatus((prev:any) => ({
+    }    const isEnabled = await BluetoothSerial.isEnabled();
+    const isConnected = await BluetoothSerial.isConnected();
+    
+    setBluetoothStatus((prev:any) => ({
       ...prev,
       intervalDelay: intervalDelay,
       enableSendOverBT: enableBtTransmission == null ? true : enableBtTransmission === 'true',

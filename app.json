@@ -1,9 +1,9 @@
 {
-  "name": "robolink",
-  "displayName": "robolink",
+  "name": "robolinkbd",
+  "displayName": "Robolink",
   "expo": {
     "name": "Robolink",
-    "slug": "robolink",
+    "slug": "robolinkbd",
     "version": "1.0.0",
     "orientation": "landscape",
     "icon": "./assets/icon.png",
