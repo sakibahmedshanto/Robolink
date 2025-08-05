@@ -52,10 +52,9 @@ const CustomJoystickScreen: React.FC = () => {
     handleSliderChange,
     formatMessage,
   } = useCustomJoystickData();
-
   // State management
   const [layout, setLayout] = useState<JoystickButton[]>([]);
-  const [newType, setNewType] = useState<string>('direction');
+  const [newType, setNewType] = useState<'direction' | 'action' | 'slider'>('direction');
   const [newLabel, setNewLabel] = useState<string>('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -194,8 +193,7 @@ const CustomJoystickScreen: React.FC = () => {
   /**
    * Adds a new button to the layout
    */
-  const handleAddButton = () => {
-    if (!newLabel.trim()) {
+  const handleAddButton = () => {    if (!newLabel.trim()) {
       Alert.alert('Error', 'Please enter a button label');
       return;
     }
@@ -343,10 +341,8 @@ const CustomJoystickScreen: React.FC = () => {
           updates[key] = newValue;
           lastInputValueRef.current[key] = newValue;
           hasButtonChanges = true;
-          console.log(`🎮 [CUSTOM REALTIME] Button ${key}: ${lastValue} → ${newValue}`);
-
-          // Immediately trigger button action
-          handleButtonPress(`physical_btn_${key}`, newValue === 1);
+          console.log(`🎮 [CUSTOM REALTIME] Button ${key}: ${lastValue} → ${newValue}`);          // Immediately trigger button action
+          handleButtonPress(`physical_btn_${key}`, 100, newValue === 1);
         }
       } else {
         // ANALOG INPUTS: Rate limit but still responsive
@@ -412,7 +408,7 @@ const CustomJoystickScreen: React.FC = () => {
       if (value !== undefined && value !== 0) { // Only send non-zero values
         // For buttons (0 or 1), treat as button press
         if (key.match(/^\d+$/)) { // Button keycodes are numeric strings
-          handleButtonPress(`physical_btn_${key}`, value === 1);
+          handleButtonPress(`physical_btn_${key}`, 100, value === 1);
         } else {
           // For analog inputs (joysticks, triggers), pass directly
           handleJoystickMove(`physical_${key}`, value / 1000, 0); // Scale back from -1000/1000 to -1/1

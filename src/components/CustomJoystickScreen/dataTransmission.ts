@@ -1,6 +1,6 @@
 /**
  * Data transmission management for Custom Joystick Screen
- * Handles button state and data transmission via Bluetooth/UDP using JSON format
+ * Handles button state and data transmission via Bluetooth/UDP using map:value format
  */
 
 import { useRef, useEffect, useState } from 'react';
@@ -10,16 +10,16 @@ import { useBluetoothStatus } from '../../atoms/configs';
 import { useUdpSingleton } from '../../hooks/useUdpSingleton';
 
 interface ButtonState {
-  [buttonId: string]: number; // 0 for released, 1 for pressed
+  [mapName: string]: number; // mapName -> mapValue (when pressed) or 0 (when released)
 }
 
-interface JoystickData {
-  [key: string]: number;
+interface SliderData {
+  [mapName: string]: number; // mapName -> current slider value
 }
 
 export const useCustomJoystickData = () => {
   const [buttonStates, setButtonStates] = useState<ButtonState>({});
-  const [joystickData, setJoystickData] = useState<JoystickData>({});
+  const [sliderData, setSliderData] = useState<SliderData>({});
   const [bluetoothStatus] = useBluetoothStatus();
   const { startTransmission, stopTransmission, sendImmediately } = useUdpSingleton();
   
@@ -31,7 +31,7 @@ export const useCustomJoystickData = () => {
   });
 
   const buttonStatesRef = useRef(buttonStates);
-  const joystickDataRef = useRef(joystickData);
+  const sliderDataRef = useRef(sliderData);
   const btIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Keep refs updated
@@ -40,8 +40,10 @@ export const useCustomJoystickData = () => {
   }, [buttonStates]);
 
   useEffect(() => {
-    joystickDataRef.current = joystickData;
-  }, [joystickData]);  // Bluetooth transmission
+    sliderDataRef.current = sliderData;
+  }, [sliderData]);
+
+  // Bluetooth transmission
   useEffect(() => {
     console.log('🔧 Bluetooth transmission effect triggered:', {
       isConnected: bluetoothStatus.isConnected,
@@ -55,30 +57,34 @@ export const useCustomJoystickData = () => {
       return;
     }
 
-    if (btIntervalRef.current) clearInterval(btIntervalRef.current);    console.log('✅ Starting Bluetooth transmission interval');
+    if (btIntervalRef.current) clearInterval(btIntervalRef.current);
+
+    console.log('✅ Starting Bluetooth transmission interval');
     btIntervalRef.current = setInterval(() => {
-      // Create simple key-value format - same as main gamepad component
+      // Create map:value format
       const gamepadValues: string[] = [];
       
-      // Add button states
-      Object.keys(buttonStatesRef.current).forEach(key => {
-        const value = buttonStatesRef.current[key] || 0;
+      // Add button states (only active ones)
+      Object.keys(buttonStatesRef.current).forEach(mapName => {
+        const value = buttonStatesRef.current[mapName] || 0;
         if (value !== 0) {
-          gamepadValues.push(`${key}=${value}`);
+          gamepadValues.push(`${mapName}:${value}`);
         }
       });
       
-      // Add joystick/slider data
-      Object.keys(joystickDataRef.current).forEach(key => {
-        const value = joystickDataRef.current[key] || 0;
+      // Add slider data (only non-zero values)
+      Object.keys(sliderDataRef.current).forEach(mapName => {
+        const value = sliderDataRef.current[mapName] || 0;
         if (value !== 0) {
-          gamepadValues.push(`${key}=${value}`);
+          gamepadValues.push(`${mapName}:${value}`);
         }
       });
       
-      const simpleMessage = gamepadValues.join(',');
-      console.log('📡 Bluetooth transmission (simple format):', simpleMessage);
-      BluetoothSerial.writeToDevice(simpleMessage);
+      const message = gamepadValues.join(',');
+      if (message) {
+        console.log('📡 Bluetooth transmission (map:value format):', message);
+        BluetoothSerial.writeToDevice(message);
+      }
     }, bluetoothStatus.intervalDelay || 100);
 
     return () => {
@@ -87,28 +93,30 @@ export const useCustomJoystickData = () => {
   }, [
     bluetoothStatus.isConnected,
     bluetoothStatus.enableSendOverBT,
-    bluetoothStatus.intervalDelay,  ]);
+    bluetoothStatus.intervalDelay,
+  ]);
+
   // UDP transmission using singleton
   useEffect(() => {
     console.log('🔧 CustomJoystick - Setting up UDP transmission');
     
     const createDataMessage = (): string => {
-      // Create simple key-value format - same as main gamepad component
+      // Create map:value format
       const gamepadValues: string[] = [];
       
-      // Add button states
-      Object.keys(buttonStatesRef.current).forEach(key => {
-        const value = buttonStatesRef.current[key] || 0;
+      // Add button states (only active ones)
+      Object.keys(buttonStatesRef.current).forEach(mapName => {
+        const value = buttonStatesRef.current[mapName] || 0;
         if (value !== 0) {
-          gamepadValues.push(`${key}=${value}`);
+          gamepadValues.push(`${mapName}:${value}`);
         }
       });
       
-      // Add joystick/slider data
-      Object.keys(joystickDataRef.current).forEach(key => {
-        const value = joystickDataRef.current[key] || 0;
+      // Add slider data (only non-zero values)
+      Object.keys(sliderDataRef.current).forEach(mapName => {
+        const value = sliderDataRef.current[mapName] || 0;
         if (value !== 0) {
-          gamepadValues.push(`${key}=${value}`);
+          gamepadValues.push(`${mapName}:${value}`);
         }
       });
       
@@ -123,73 +131,79 @@ export const useCustomJoystickData = () => {
       stopTransmission();
     };
   }, []); // Empty dependency array - we only want to set this up once
-  // Button press handlers with immediate transmission
-  const handleButtonPress = (buttonId: string, pressed: boolean) => {
-    const value = pressed ? 1 : 0;
-    console.log(`🎮 Custom Joystick Button ${buttonId}: ${pressed ? 'PRESSED' : 'RELEASED'} (Value: ${value})`);
+
+  // Button press handlers with map:value transmission
+  const handleButtonPress = (mapName: string, mapValue: number, pressed: boolean) => {
+    const value = pressed ? mapValue : 0;
+    console.log(`🎮 Custom Button ${mapName}: ${pressed ? 'PRESSED' : 'RELEASED'} (Value: ${value})`);
+    
     setButtonStates(prev => ({
       ...prev,
-      [buttonId]: value
+      [mapName]: value
     }));
 
     // Send immediately for real-time control
-    const immediateData = `${buttonId}=${value}`;
-    sendImmediately(immediateData);
-    console.log(`⚡ Immediate button data sent: ${immediateData}`);
+    if (pressed) {
+      const immediateData = `${mapName}:${mapValue}`;
+      sendImmediately(immediateData);
+      console.log(`⚡ Immediate button data sent: ${immediateData}`);
+    }
   };
 
-  // Joystick movement handlers with smart transmission
+  // Slider value handlers with map:value transmission
+  const handleSliderChange = (mapName: string, mapValue: number, sliderValue: number) => {
+    // Calculate proportional value: (sliderValue / 100) * mapValue
+    const proportionalValue = Math.round((sliderValue / 100) * mapValue);
+    console.log(`🎚️ Custom Slider ${mapName}: ${sliderValue}% of ${mapValue} = ${proportionalValue}`);
+    
+    setSliderData(prev => ({
+      ...prev,
+      [mapName]: proportionalValue
+    }));
+
+    // Send immediately for real-time control
+    const immediateData = `${mapName}:${proportionalValue}`;
+    sendImmediately(immediateData);
+    console.log(`⚡ Immediate slider data sent: ${immediateData}`);
+  };
+
+  // Joystick movement handlers (for virtual joysticks) - maintained for compatibility
   const handleJoystickMove = (joystickId: string, x: number, y: number) => {
     console.log(`🕹️ Custom Joystick ${joystickId}: X=${x}, Y=${y}`);
     
-    const scaledX = Math.round(x * 1000); // Scale to match physical gamepad format (-1000 to 1000)
+    const scaledX = Math.round(x * 1000);
     const scaledY = Math.round(y * 1000);
     
-    setJoystickData(prev => ({
+    setSliderData(prev => ({
       ...prev,
       [`${joystickId}_x`]: scaledX,
       [`${joystickId}_y`]: scaledY
     }));
 
-    // For joysticks, only send immediately if it's a significant change
-    const prevX = joystickDataRef.current[`${joystickId}_x`] || 0;
-    const prevY = joystickDataRef.current[`${joystickId}_y`] || 0;
+    // Send immediately if significant movement
+    const prevX = sliderDataRef.current[`${joystickId}_x`] || 0;
+    const prevY = sliderDataRef.current[`${joystickId}_y`] || 0;
     
     const deltaX = Math.abs(scaledX - prevX);
     const deltaY = Math.abs(scaledY - prevY);
-      // Send immediately if significant movement (threshold of 100 = 0.1 in normalized coords)
+    
     if (deltaX > 100 || deltaY > 100) {
-      const immediateData = `${joystickId}_x=${scaledX},${joystickId}_y=${scaledY}`;
+      const immediateData = `${joystickId}_x:${scaledX},${joystickId}_y:${scaledY}`;
       sendImmediately(immediateData);
       console.log(`⚡ Immediate joystick data sent: ${immediateData}`);
     }
   };
-  // Slider value handlers with immediate transmission
-  const handleSliderChange = (sliderId: string, value: number) => {
-    const scaledValue = Math.round(value * 10); // Scale 0-100 to 0-1000
-    console.log(`🎚️ Custom Slider ${sliderId}: ${value} → ${scaledValue}`);
-    
-    setJoystickData(prev => ({
-      ...prev,
-      [sliderId]: scaledValue
-    }));
-
-    // Send immediately for real-time control
-    const immediateData = `${sliderId}=${scaledValue}`;
-    sendImmediately(immediateData);
-    console.log(`⚡ Immediate slider data sent: ${immediateData}`);
-  };
 
   // Format message function for debugging and display
   const formatMessage = (data: any) => {
-    // Create simple key-value format for debugging
+    // Create map:value format for debugging
     const values: string[] = [];
     
-    Object.keys(data).forEach(key => {
-      const value = data[key] || 0;
+    Object.keys(data).forEach(mapName => {
+      const value = data[mapName] || 0;
       // Only include non-zero values to reduce clutter
       if (value !== 0) {
-        values.push(`${key}=${value}`);
+        values.push(`${mapName}:${value}`);
       }
     });
     
@@ -198,7 +212,7 @@ export const useCustomJoystickData = () => {
 
   return {
     buttonStates,
-    joystickData,
+    joystickData: sliderData, // Renamed for compatibility
     handleButtonPress,
     handleJoystickMove,
     handleSliderChange,

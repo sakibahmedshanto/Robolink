@@ -1,6 +1,6 @@
 /**
  * Button Configuration Modal component for the Custom Joystick Screen
- * Allows users to add new buttons or edit existing ones
+ * Simplified modal for creating buttons with map name and value configuration
  */
 
 import React from 'react';
@@ -17,17 +17,23 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { gestureHandlerRootHOC } from 'react-native-gesture-handler';
 import { ButtonConfig, ButtonTypeOption } from './types';
-import { BUTTON_TYPES, DIRECTION_OPTIONS, ACTION_OPTIONS, COLOR_OPTIONS } from './constants';
+import { 
+  BUTTON_TYPES, 
+  DIRECTION_MAP_OPTIONS, 
+  ACTION_MAP_OPTIONS, 
+  SLIDER_MAP_OPTIONS, 
+  COLOR_OPTIONS 
+} from './constants';
 import SliderButton from '../SliderButton';
 
 interface ButtonConfigModalProps {
   visible: boolean;
   isEditMode: boolean;
   label: string;
-  buttonType: string;
+  buttonType: 'direction' | 'action' | 'slider';
   config: ButtonConfig;
   onChangeLabel: (label: string) => void;
-  onChangeButtonType: (type: string) => void;
+  onChangeButtonType: (type: 'direction' | 'action' | 'slider') => void;
   onChangeConfig: (config: ButtonConfig) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -60,6 +66,10 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
       Alert.alert('Error', 'Please enter a button label');
       return;
     }
+    if (!config.mapName.trim()) {
+      Alert.alert('Error', 'Please select a map name');
+      return;
+    }
     onSave();
   };
 
@@ -75,7 +85,12 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
             styles.typeButton,
             buttonType === btn.type && styles.typeButtonActive,
           ]}
-          onPress={() => onChangeButtonType(btn.type)}
+          onPress={() => {
+            onChangeButtonType(btn.type as 'direction' | 'action' | 'slider');
+            // Reset map name when type changes
+            const defaultMapName = getDefaultMapName(btn.type as 'direction' | 'action' | 'slider');
+            updateConfig('mapName', defaultMapName);
+          }}
         >
           <Text style={styles.typeIcon}>{btn.icon}</Text>
           <Text style={styles.typeButtonText}>{btn.label}</Text>
@@ -83,6 +98,38 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
       ))}
     </View>
   );
+
+  /**
+   * Gets default map name for button type
+   */
+  const getDefaultMapName = (type: 'direction' | 'action' | 'slider'): string => {
+    switch (type) {
+      case 'direction':
+        return DIRECTION_MAP_OPTIONS[0];
+      case 'action':
+        return ACTION_MAP_OPTIONS[0];
+      case 'slider':
+        return SLIDER_MAP_OPTIONS[0];
+      default:
+        return '';
+    }
+  };
+
+  /**
+   * Gets map options based on button type
+   */
+  const getMapOptions = (): string[] => {
+    switch (buttonType) {
+      case 'direction':
+        return DIRECTION_MAP_OPTIONS;
+      case 'action':
+        return ACTION_MAP_OPTIONS;
+      case 'slider':
+        return SLIDER_MAP_OPTIONS;
+      default:
+        return [];
+    }
+  };
 
   /**
    * Renders the color picker
@@ -104,128 +151,88 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
   );
 
   /**
-   * Renders direction picker for direction buttons
+   * Renders map name picker
    */
-  const renderDirectionPicker = () => {
-    if (buttonType !== 'direction') return null;
-
-    return (
-      <>
-        <Text style={styles.configLabel}>Direction:</Text>
-        <Picker
-          selectedValue={config.direction}
-          style={styles.picker}
-          onValueChange={(value) => updateConfig('direction', value)}
-        >
-          {DIRECTION_OPTIONS.map((dir) => (
-            <Picker.Item key={dir} label={dir.replace('_', ' ')} value={dir} />
-          ))}
-        </Picker>
-      </>
-    );
-  };
-
-  /**
-   * Renders action picker for action buttons
-   */
-  const renderActionPicker = () => {
-    if (buttonType !== 'action') return null;
-
-    return (
-      <>
-        <Text style={styles.configLabel}>Action:</Text>
-        <Picker
-          selectedValue={config.action}
-          style={styles.picker}
-          onValueChange={(value) => updateConfig('action', value)}
-        >
-          {ACTION_OPTIONS.map((action) => (
-            <Picker.Item key={action} label={action} value={action} />
-          ))}
-        </Picker>
-      </>
-    );
-  };
-
-  /**
-   * Renders sensitivity slider for slider and joystick buttons
-   */
-  const renderSensitivitySlider = () => {
-    if (buttonType !== 'slider' && buttonType !== 'joystick') return null;
-
-    return (
-      <>
-        <Text style={styles.configLabel}>Sensitivity:</Text>
-        <View style={styles.sliderContainer}>
-          <Text style={styles.sliderValue}>{config.sensitivity}</Text>
-          <SliderButton
-            value={config.sensitivity}
-            minimumValue={1}
-            maximumValue={100}
-            onValueChange={(value: number) => updateConfig('sensitivity', value)}
-            label="Sensitivity"
+  const renderMapNamePicker = () => (
+    <>
+      <Text style={styles.configLabel}>Map Name:</Text>
+      <Picker
+        selectedValue={config.mapName}
+        style={styles.picker}
+        onValueChange={(value) => updateConfig('mapName', value)}
+      >
+        {getMapOptions().map((mapName) => (
+          <Picker.Item 
+            key={mapName} 
+            label={mapName.replace('_', ' ').toUpperCase()} 
+            value={mapName} 
           />
-        </View>
-      </>
-    );
-  };
+        ))}
+      </Picker>
+    </>
+  );
 
   // Wrap the modal content with gesture handler
   const ModalContent = gestureHandlerRootHOC(() => (
     <View style={styles.modalOverlay}>
       <View style={styles.modalContent}>
-        <ScrollView>
+        <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={styles.modalTitle}>
-            {isEditMode ? 'Edit Button' : 'Add New Button'}
+            {isEditMode ? 'Edit Button' : 'Create New Button'}
           </Text>
 
-          {/* Label Input */}
-          <Text style={styles.configLabel}>Label:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Button Label"
-            value={label}
-            onChangeText={onChangeLabel}
-          />
-
-          {/* Type Picker */}
-          <Text style={styles.configLabel}>Type:</Text>
+          {/* Button Type Picker */}
+          <Text style={styles.configLabel}>Button Type:</Text>
           {renderTypePicker()}
 
+          {/* Label Input */}
+          <Text style={styles.configLabel}>Button Label:</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter button label"
+            value={label}
+            onChangeText={onChangeLabel}
+            maxLength={15}
+          />
+
+          {/* Map Name Picker */}
+          {renderMapNamePicker()}
+
+          {/* Map Value Input */}
+          <Text style={styles.configLabel}>Map Value:</Text>
+          <View style={styles.valueInputContainer}>
+            <TextInput
+              style={styles.valueInput}
+              placeholder="100"
+              value={config.mapValue.toString()}
+              onChangeText={(text) => {
+                const value = parseInt(text) || 0;
+                updateConfig('mapValue', Math.max(0, Math.min(1000, value)));
+              }}
+              keyboardType="numeric"
+              maxLength={4}
+            />
+            <Text style={styles.valueHint}>
+              {buttonType === 'slider' ? '(0-1000 range)' : '(Typically 100)'}
+            </Text>
+          </View>
+
           {/* Size Slider */}
-          <Text style={styles.configLabel}>Size:</Text>
+          <Text style={styles.configLabel}>Button Size:</Text>
           <View style={styles.sliderContainer}>
             <Text style={styles.sliderValue}>{config.size}</Text>
             <SliderButton
               value={config.size}
-              minimumValue={30}
+              minimumValue={40}
               maximumValue={120}
-              onValueChange={(value: number) => updateConfig('size', value)}
+              onValueChange={(value: number) => updateConfig('size', Math.round(value))}
               label="Size"
             />
           </View>
 
           {/* Color Picker */}
-          <Text style={styles.configLabel}>Color:</Text>
+          <Text style={styles.configLabel}>Button Color:</Text>
           {renderColorPicker()}
-
-          {/* Direction Picker (conditional) */}
-          {renderDirectionPicker()}
-
-          {/* Action Picker (conditional) */}
-          {renderActionPicker()}
-
-          {/* Sensitivity Slider (conditional) */}
-          {renderSensitivitySlider()}
-
-          {/* Custom Command Input */}
-          <Text style={styles.configLabel}>Custom Command:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter custom command (optional)"
-            value={config.customCommand}
-            onChangeText={(value) => updateConfig('customCommand', value)}
-          />
 
           {/* Modal Buttons */}
           <View style={styles.modalButtons}>
@@ -240,7 +247,7 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
               onPress={handleSave}
             >
               <Text style={[styles.modalButtonText, styles.modalButtonPrimaryText]}>
-                {isEditMode ? 'Update' : 'Add'}
+                {isEditMode ? 'Update' : 'Create'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -264,41 +271,41 @@ const ButtonConfigModal: React.FC<ButtonConfigModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 24,
     width: '90%',
-    maxHeight: '80%',
+    maxHeight: '85%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOpacity: 0.3,
+    shadowRadius: 25,
+    elevation: 15,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 20,
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 24,
     textAlign: 'center',
     color: '#1e293b',
   },
   configLabel: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 16,
+    marginBottom: 10,
+    marginTop: 20,
     color: '#374151',
   },
   input: {
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 10,
+    padding: 14,
     marginBottom: 8,
     backgroundColor: '#f9fafb',
     fontSize: 16,
@@ -306,16 +313,16 @@ const styles = StyleSheet.create({
   },
   typePicker: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'space-around',
+    gap: 10,
     marginBottom: 8,
   },
   typeButton: {
-    padding: 12,
-    borderRadius: 8,
+    flex: 1,
+    padding: 15,
+    borderRadius: 10,
     backgroundColor: '#f3f4f6',
     alignItems: 'center',
-    minWidth: 70,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -324,36 +331,58 @@ const styles = StyleSheet.create({
     borderColor: '#2563eb',
   },
   typeIcon: {
-    fontSize: 18,
-    marginBottom: 4,
+    fontSize: 20,
+    marginBottom: 6,
   },
   typeButtonText: {
     color: '#374151',
     fontWeight: '600',
     fontSize: 12,
   },
-  sliderContainer: {
+  valueInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 8,
+  },
+  valueInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: '#f9fafb',
+    fontSize: 16,
+    color: '#374151',
+    width: 80,
+    textAlign: 'center',
+  },
+  valueHint: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontStyle: 'italic',
+  },
+  sliderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
     marginBottom: 8,
   },
   sliderValue: {
     fontSize: 16,
     fontWeight: '600',
     color: '#374151',
-    minWidth: 30,
+    minWidth: 35,
   },
   colorPicker: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
     marginBottom: 8,
   },
   colorOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    width: 45,
+    height: 45,
+    borderRadius: 10,
     borderWidth: 3,
     borderColor: 'transparent',
     shadowColor: '#000',
@@ -365,34 +394,34 @@ const styles = StyleSheet.create({
   colorOptionSelected: {
     borderColor: '#1e293b',
     shadowColor: '#1e293b',
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
   },
   picker: {
     height: 50,
     marginBottom: 8,
     backgroundColor: '#f9fafb',
-    borderRadius: 8,
+    borderRadius: 10,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 24,
-    gap: 12,
+    marginTop: 30,
+    gap: 15,
   },
   modalButton: {
     flex: 1,
     backgroundColor: '#f3f4f6',
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
   },
   modalButtonPrimary: {
     backgroundColor: '#2563eb',
     shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
   },
   modalButtonText: {
     color: '#374151',
