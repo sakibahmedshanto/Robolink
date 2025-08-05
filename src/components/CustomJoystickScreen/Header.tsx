@@ -16,6 +16,7 @@ interface HeaderProps {
     onResetToGamepad?: () => void;
     onShowInstructions?: () => void;
     onSaveLayout?: () => void;
+    onShowHelp?: () => void; // Add help button handler
     savedLayouts?: SavedLayout[];
     onLoadLayout?: (layout: SavedLayout) => void;
     onDeleteLayout?: (layoutId: string) => void;
@@ -33,6 +34,7 @@ const Header: React.FC<HeaderProps> = ({
     onResetToGamepad,
     onShowInstructions,
     onSaveLayout,
+    onShowHelp, // Add help handler
     savedLayouts = [],
     onLoadLayout,
     onDeleteLayout,
@@ -41,7 +43,8 @@ const Header: React.FC<HeaderProps> = ({
     joystickData = {},
     formatMessage
 }) => {
-    const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);    return (
+    const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
+    return (
         <View style={styles.header}>
             <View style={styles.leftSection}>
                 <TouchableOpacity
@@ -102,6 +105,14 @@ const Header: React.FC<HeaderProps> = ({
                 >
                     <Text style={styles.headerButtonText}>Add</Text>
                 </TouchableOpacity>
+                {onShowHelp ? (
+                    <TouchableOpacity
+                        style={[styles.headerButton, styles.helpHeaderButton]}
+                        onPress={onShowHelp}
+                    >
+                        <Text style={styles.headerButtonText}>Help</Text>
+                    </TouchableOpacity>
+                ) : null}
                 <HeaderRightButtons />
             </View>
 
@@ -174,7 +185,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
-    },    headerTitle: {
+    }, headerTitle: {
         fontSize: 16,
         fontWeight: '700',
         color: '#fff',
@@ -188,7 +199,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 8,
-    },    helpButtonText: {
+    }, helpButtonText: {
         color: '#fff',
         fontSize: 14,
         fontWeight: 'bold',
@@ -203,13 +214,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 4,
-    },    headerButtonText: {
+    }, headerButtonText: {
         color: '#fff',
         fontWeight: '600',
         fontSize: 13,
-    },
-    saveButton: {
+    }, saveButton: {
         backgroundColor: '#B91E30', // Darker red for save button contrast
+    },
+    helpHeaderButton: {
+        backgroundColor: '#2563eb', // Blue color for help button
     },
     layoutDropdownButton: {
         flexDirection: 'row',
@@ -218,7 +231,7 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderRadius: 4,
         backgroundColor: '#ffffff20',
-    },    dropdownIcon: {
+    }, dropdownIcon: {
         color: '#fff',
         fontSize: 12,
         marginLeft: 6,
@@ -282,7 +295,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         textAlign: 'center',
         paddingVertical: 20,
-    },    dataTransmissionContainer: {
+    }, dataTransmissionContainer: {
         backgroundColor: '#ffffff20',
         padding: 6,
         marginLeft: 8,

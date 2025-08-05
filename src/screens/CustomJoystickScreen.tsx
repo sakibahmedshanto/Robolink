@@ -14,6 +14,7 @@ import Header from '../components/CustomJoystickScreen/Header';
 import Canvas from '../components/CustomJoystickScreen/Canvas';
 import ButtonConfigModal from '../components/CustomJoystickScreen/ButtonConfigModal';
 import SaveLayoutModal from '../components/CustomJoystickScreen/SaveLayoutModal';
+import HelpModal from '../components/CustomJoystickScreen/HelpModal';
 
 // Add GlobalKeyEvent import for physical gamepad input handling
 import { GlobalKeyEvent } from '../specs';
@@ -61,9 +62,9 @@ const CustomJoystickScreen: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
   const [currentLayoutName, setCurrentLayoutName] = useState<string>('Gamepad');
-  const [isEditMode, setIsEditMode] = useState<boolean>(false);
-  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false); const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
   const [saveLayoutName, setSaveLayoutName] = useState<string>('');
+  const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
 
   // Button configuration state
   const [buttonConfig, setButtonConfig] = useState<ButtonConfig>(DEFAULT_BUTTON_CONFIG);
@@ -312,11 +313,18 @@ const CustomJoystickScreen: React.FC = () => {
     setShowSaveModal(false);
     setSaveLayoutName('');
   };
-
   const handleCancelSaveModal = () => {
     setShowSaveModal(false);
     setSaveLayoutName('');
-  };  /**
+  };
+
+  const handleShowHelp = () => {
+    setShowHelpModal(true);
+  };
+
+  const handleCloseHelp = () => {
+    setShowHelpModal(false);
+  };/**
    * Real-time input handler - no buffering, immediate response for buttons
    * Only rate-limits analog inputs to prevent excessive data transmission
    */
@@ -467,19 +475,20 @@ const CustomJoystickScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Header
-        currentLayoutName={currentLayoutName}
-        isEditMode={isEditMode}
-        onToggleEditMode={() => setIsEditMode(!isEditMode)}
-        onAddButton={() => setShowAddModal(true)}
-        onResetToGamepad={handleResetToGamepad}
-        onSaveLayout={() => setShowSaveModal(true)}
-        savedLayouts={savedLayouts}
-        onLoadLayout={handleLoadLayout}
-        onDeleteLayout={handleDeleteLayout}
-        buttonStates={buttonStates}
-        joystickData={joystickData}
-        formatMessage={formatMessage}
-      />
+      currentLayoutName={currentLayoutName}
+      isEditMode={isEditMode}
+      onToggleEditMode={() => setIsEditMode(!isEditMode)}
+      onAddButton={() => setShowAddModal(true)}
+      onResetToGamepad={handleResetToGamepad}
+      onSaveLayout={() => setShowSaveModal(true)}
+      onShowHelp={handleShowHelp}
+      savedLayouts={savedLayouts}
+      onLoadLayout={handleLoadLayout}
+      onDeleteLayout={handleDeleteLayout}
+      buttonStates={buttonStates}
+      joystickData={joystickData}
+      formatMessage={formatMessage}
+    />
       <Canvas
         layout={layout}
         isEditMode={isEditMode}
@@ -503,13 +512,17 @@ const CustomJoystickScreen: React.FC = () => {
         onSave={handleModalSave}
         onCancel={handleCancelModal}
       />
-
       <SaveLayoutModal
         visible={showSaveModal}
         layoutName={saveLayoutName}
         onChangeLayoutName={setSaveLayoutName}
         onSave={handleSaveLayoutModal}
-        onCancel={handleCancelSaveModal} />  
+        onCancel={handleCancelSaveModal} />
+
+      <HelpModal
+        visible={showHelpModal}
+        onClose={handleCloseHelp}
+      />
       {/* Display physical input indicator */}
       {/* {lastPhysicalInput ? (
         <View style={styles.physicalInputContainer}>
