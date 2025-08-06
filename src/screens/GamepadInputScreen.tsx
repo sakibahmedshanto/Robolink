@@ -6,6 +6,7 @@ import GamepadInputs from '../components/GampadInputs';
 type RootStackParamList = {
   GamepadInputs: undefined;
   CustomJoystick: undefined;
+  CustomController: undefined;
 };
 
 export default function GamepadInputScreen() {
@@ -18,7 +19,7 @@ export default function GamepadInputScreen() {
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         <Button
           title="Go to Custom Joystick"
-          onPress={() => navigation.navigate('CustomJoystick')}
+          onPress={() => navigation.navigate('CustomController')}
         />
         <GamepadInputs />
       </View>

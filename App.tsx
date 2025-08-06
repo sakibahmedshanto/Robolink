@@ -10,11 +10,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import GamepadInputScreen from './src/screens/GamepadInputScreen';
+import CustomControllerScreen from './src/screens/CustomControllerScreen';
 import CustomJoystickScreen from './src/screens/CustomJoystickScreen';
 import HeaderRightButtons from './src/components/HeaderRightButtons';
 import { useBluetoothStatus, useUdpStatus } from './src/atoms/configs';
 import { BluetoothSerial } from "./src/specs";
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { showToast } from './src/components/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UdpManager from './src/services/UdpManager';
@@ -44,6 +45,13 @@ const RootStack = createNativeStackNavigator({
       screen: CustomJoystickScreen,
       options: {
         title: 'Custom Joystick',
+        headerShown: false,
+      },
+    },
+    CustomController: {
+      screen: CustomControllerScreen,
+      options: {
+        title: 'Custom Controller',
         headerShown: false,
       },
     },
@@ -114,6 +122,7 @@ function App() {
       BluetoothSerial.removeListener('error');
     }
   }, [])
+  
   const initializeBluetoothStatus = async () => {
     let enableBtTransmission: string | null = null;
     let intervalDelay = 100; // Default value

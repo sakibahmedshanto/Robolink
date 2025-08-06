@@ -1,15 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
-const ActionButton = ({ 
-  label, 
-  onPress, 
-  onPressIn, 
-  onPressOut,
-  id,
-  action,
-  disabled = false 
-}: { 
+const ActionButton = ({ label, onPress, onPressIn, onPressOut, id, action, disabled = false }: { 
   label: string; 
   onPress?: () => void; 
   onPressIn?: () => void; 
