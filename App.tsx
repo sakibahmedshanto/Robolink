@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react';
 import { showToast } from './src/components/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UdpManager from './src/services/UdpManager';
+import AuthNavigator from './src/auth/AuthNavigator';
 
 
 const RootStack = createNativeStackNavigator({
@@ -47,65 +48,11 @@ const Navigation = createStaticNavigation(RootStack);
 
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showCustomScreen, setShowCustomScreen] = useState(false);
   const [ _, setBluetoothStatus ] = useBluetoothStatus();
   const [ __, setUdpStatus] = useUdpStatus();
 
-  useEffect(() => {
-    initializeBluetoothStatus();
-    initializeUdpStatus();
-
-    BluetoothSerial.on('bluetoothEnabled', (data:any) => {
-      setBluetoothStatus((prev:any) => ({
-        ...prev,
-        isEnabled: true,
-      }));
-    });
-    
-    BluetoothSerial.on('bluetoothDisabled', (data:any) => {
-      setBluetoothStatus((prev:any) => ({
-        ...prev,
-        isEnabled: false,
-        isConnected: false,
-      }));
-    });
-
-    BluetoothSerial.on('connectionSuccess', (data:any) => {
-      showToast('Device connected successfully');
-      setBluetoothStatus((prev:any) => ({
-        ...prev,
-        isConnected: true,
-      }));
-    });
-    BluetoothSerial.on('connectionLost', (data:any) => {
-      console.log('Device connection lost');
-      showToast('Device connection lost');
-      setBluetoothStatus((prev:any) => ({
-        ...prev,
-        isConnected: false,
-      }));
-    });
-    BluetoothSerial.on('connectionFailed', (data:any) => {
-      console.log('Device connection failed');
-      showToast('Device connection failed');
-      setBluetoothStatus((prev:any) => ({
-        ...prev,
-        isConnected: false,
-      }));
-    });
-    BluetoothSerial.on('error', (error:any) => {
-      console.log('Bluetooth Serial Error:', error);
-      showToast('Bluetooth Serial Error: ' + error.message);
-    });
-
-    return () => {
-      BluetoothSerial.removeListener('bluetoothEnabled');
-      BluetoothSerial.removeListener('bluetoothDisabled');
-      BluetoothSerial.removeListener('connectionSuccess');
-      BluetoothSerial.removeListener('connectionLost');
-      BluetoothSerial.removeListener('connectionFailed');
-      BluetoothSerial.removeListener('error');
-    }
-  }, [])
   const initializeBluetoothStatus = async () => {
     let enableBtTransmission: string | null = null;
     let intervalDelay = 100; // Default value
@@ -115,7 +62,8 @@ function App() {
       intervalDelay = parseInt(await AsyncStorage.getItem('btIntervalDelay') || '100');
     } catch (error) {
       console.error('Error loading Bluetooth status from storage:', error);
-    }    const isEnabled = await BluetoothSerial.isEnabled();
+    }
+    const isEnabled = await BluetoothSerial.isEnabled();
     const isConnected = await BluetoothSerial.isConnected();
     
     setBluetoothStatus((prev:any) => ({
@@ -155,11 +103,95 @@ function App() {
       console.error('Error loading UDP status from storage:', error);
     }
   }
+  // Initialize when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      initializeBluetoothStatus();
+      initializeUdpStatus();
+
+      BluetoothSerial.on('bluetoothEnabled', (data:any) => {
+        setBluetoothStatus((prev:any) => ({
+          ...prev,
+          isEnabled: true,
+        }));
+      });
+      
+      BluetoothSerial.on('bluetoothDisabled', (data:any) => {
+        setBluetoothStatus((prev:any) => ({
+          ...prev,
+          isEnabled: false,
+          isConnected: false,
+        }));
+      });
+
+      BluetoothSerial.on('connectionSuccess', (data:any) => {
+        showToast('Device connected successfully');
+        setBluetoothStatus((prev:any) => ({
+          ...prev,
+          isConnected: true,
+        }));
+      });
+      BluetoothSerial.on('connectionLost', (data:any) => {
+        console.log('Device connection lost');
+        showToast('Device connection lost');
+        setBluetoothStatus((prev:any) => ({
+          ...prev,
+          isConnected: false,
+        }));
+      });
+      BluetoothSerial.on('connectionFailed', (data:any) => {
+        console.log('Device connection failed');
+        showToast('Device connection failed');
+        setBluetoothStatus((prev:any) => ({
+          ...prev,
+          isConnected: false,
+        }));
+      });
+      BluetoothSerial.on('error', (error:any) => {
+        console.log('Bluetooth Serial Error:', error);
+        showToast('Bluetooth Serial Error: ' + error.message);
+      });
+
+      return () => {
+        BluetoothSerial.removeListener('bluetoothEnabled');
+        BluetoothSerial.removeListener('bluetoothDisabled');
+        BluetoothSerial.removeListener('connectionSuccess');
+        BluetoothSerial.removeListener('connectionLost');
+        BluetoothSerial.removeListener('connectionFailed');
+        BluetoothSerial.removeListener('error');
+      }
+    }
+  }, [isAuthenticated])
+
+  // If not authenticated, show the auth system
+  if (!isAuthenticated) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <AuthNavigator 
+          onAuthComplete={() => setIsAuthenticated(true)} 
+          onNavigateToCustomScreen={() => {
+            setIsAuthenticated(true);
+            setShowCustomScreen(true);
+          }}
+        />
+      </GestureHandlerRootView>
+    );
+  }
+
+  // If user wants to go directly to custom screen from auth
+  if (showCustomScreen) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <CustomJoystickScreen />
+      </GestureHandlerRootView>
+    );
+  }
+  // Main app logic after authentication
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Navigation />
     </GestureHandlerRootView>
-  );;
+  );
 }
 
 
