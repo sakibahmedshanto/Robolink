@@ -1,4 +1,4 @@
-package com.robolink.globalkeyevent
+package com.robolinkbd.globalkeyevent
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

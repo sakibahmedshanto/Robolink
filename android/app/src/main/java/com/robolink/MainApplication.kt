@@ -1,4 +1,4 @@
-package com.robolink
+package com.robolinkbd
 
 import android.app.Application
 import com.facebook.react.PackageList
@@ -10,9 +10,9 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.ReactPackage
 
-import com.robolink.globalkeyevent.GlobalKeyEventPackage
-import com.robolink.bluetoothserial.BluetoothSerialPackage;
-import com.robolink.network.NetworkPackage;
+import com.robolinkbd.globalkeyevent.GlobalKeyEventPackage
+import com.robolinkbd.bluetoothserial.BluetoothSerialPackage;
+import com.robolinkbd.network.NetworkPackage;
 
 
 class MainApplication : Application(), ReactApplication {

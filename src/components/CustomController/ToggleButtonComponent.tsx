@@ -37,7 +37,7 @@ const ToggleComponent: React.FC<{ widget: ToggleWidget; absoluteLeft: number; ab
         borderRadius: 8,
         padding: 8,
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -48,9 +48,9 @@ const ToggleComponent: React.FC<{ widget: ToggleWidget; absoluteLeft: number; ab
       onPress={handleToggle}
       activeOpacity={0.7}
     >
-      <Text style={{ fontSize: 10, color: '#666', fontWeight: '600' }}>
+      {/* <Text style={{ fontSize: 10, color: '#666', fontWeight: '600' }}>
         {widget.label}
-      </Text>
+      </Text> */}
 
       <View
         style={{

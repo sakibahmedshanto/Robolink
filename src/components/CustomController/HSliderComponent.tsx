@@ -3,8 +3,8 @@ import { View, Text } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { BaseWidget } from '../../types/widget';
 
-export interface SliderWidget extends BaseWidget {
-  type: 'HSLIDER' | 'VSLIDER';
+export interface HSliderWidget extends BaseWidget {
+  type: 'HSLIDER';
   label: string;
   color: string;
   min: number;
@@ -12,8 +12,8 @@ export interface SliderWidget extends BaseWidget {
   value: number;
 }
 
-const SliderComponent: React.FC<{
-  widget: SliderWidget;
+const HSliderComponent: React.FC<{
+  widget: HSliderWidget;
   absoluteLeft: number;
   absoluteTop: number;
   onValueChange: (value: number) => void;
@@ -68,9 +68,8 @@ const SliderComponent: React.FC<{
         maximumTrackTintColor="#E5E5E5"
         thumbTintColor={widget.color}
         step={1} // Ensures integer values
-        vertical={widget.type === 'VSLIDER'} // Explicit orientation control
       />
     </View>
   );
 };
-export default SliderComponent;
+export default HSliderComponent;

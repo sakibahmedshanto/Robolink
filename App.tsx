@@ -5,7 +5,7 @@
  * @format
  */
 
-import { createStaticNavigation, } from '@react-navigation/native';
+import { createStaticNavigation, useNavigation, } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -19,13 +19,17 @@ import { useEffect } from 'react';
 import { showToast } from './src/components/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UdpManager from './src/services/UdpManager';
+import HomeScreen from './src/screens/HomeScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import { BackHandler } from 'react-native';
+import { primaryColor } from './src/const/theme';
 
 
 const RootStack = createNativeStackNavigator({
-  initialRouteName: 'GamepadInputs',
+  initialRouteName: 'Home',
   screenOptions: {
     headerStyle: {
-      backgroundColor: '#D72638',
+      backgroundColor: primaryColor,
     },
     headerTintColor: '#fff',
     headerTitleStyle: {
@@ -34,18 +38,25 @@ const RootStack = createNativeStackNavigator({
     headerRight: () => <HeaderRightButtons />
   },
   screens: {
+    Home: {
+      screen: HomeScreen,
+      options: {
+        title: 'Home',
+        headerShown: false,
+      },
+    },
+    Login: {
+      screen: LoginScreen,
+      options: {
+        title: 'Login',
+        headerShown: false,
+      },
+    },
     GamepadInputs: {
       screen: GamepadInputScreen,
       options: {
         title: 'Gamepad Inputs',
         headerShown: true,
-      },
-    },
-    CustomJoystick: {
-      screen: CustomJoystickScreen,
-      options: {
-        title: 'Custom Joystick',
-        headerShown: false,
       },
     },
     CustomController: {
@@ -65,7 +76,26 @@ const Navigation = createStaticNavigation(RootStack);
 function App() {
   const [ _, setBluetoothStatus ] = useBluetoothStatus();
   const [ __, setUdpStatus] = useUdpStatus();
+  // const navigation = useNavigation();
+  
+  // useEffect(() => {
+  //     const backAction = () => {
+  //     // This is the action to perform when the back button is pressed.
+  //     // We'll use the navigation.goBack() function to navigate back.
+  //     // Returning true from the event handler prevents the default action (app exit).
+  //     navigation.goBack();
+  //     return true;
+  //   };
+  //   const backHandler = BackHandler.addEventListener(
+  //     'hardwareBackPress',
+  //     backAction,
+  //   );
+  //   // This cleanup function is crucial. It removes the event listener
+  //   // when the component is unmounted to prevent memory leaks.
+  //   return () => backHandler.remove();
+  // }, [navigation]); // The dependency array ensures the effect runs only once or when 'navigation' changes.
 
+  
   useEffect(() => {
     initializeBluetoothStatus();
     initializeUdpStatus();

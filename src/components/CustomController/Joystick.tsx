@@ -163,7 +163,11 @@ const ReactNativeJoystick = ({ onStart, onMove, onStop, color = "#000000", radiu
       });
   };
 
-  const panGesture = Gesture.Pan().onStart(handleTouchStart).onEnd(handleTouchEnd).onTouchesMove(handleTouchMove);
+  const panGesture = Gesture.Pan()
+    .onStart(handleTouchStart)
+    .onEnd(handleTouchEnd)
+    .onTouchesMove(handleTouchMove)
+    .runOnJS(true); // <-- Added this line to fix the warning
   const styles = useMemo(
     () =>
       StyleSheet.create({

@@ -1,4 +1,4 @@
-package com.robolink.globalkeyevent
+package com.robolinkbd.globalkeyevent
 
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule

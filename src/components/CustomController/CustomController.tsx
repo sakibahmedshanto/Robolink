@@ -6,13 +6,14 @@ import {
   Dimensions, // Import Dimensions for dynamic sizing
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
-import SliderComponent, { SliderWidget } from './SliderComponent';
+import VSliderComponent, { VSliderWidget } from './VSliderComponent';
 import JoystickComponent, { JoystickWidget } from './JoystickComponent';
 import ToggleComponent, { ToggleWidget } from './ToggleButtonComponent';
 import ButtonComponent, { ButtonWidget } from './ButtonComponent';
+import HSliderComponent, { HSliderWidget } from './HSliderComponent';
 
 
-type Widget = JoystickWidget | ButtonWidget | ToggleWidget | SliderWidget;
+type Widget = JoystickWidget | ButtonWidget | ToggleWidget | HSliderWidget | VSliderWidget;
 
 interface ControllerLayout {
   templateId: string;
@@ -78,11 +79,20 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
         );
 
       case 'HSLIDER':
+        return (
+          <HSliderComponent
+            key={widget.id}
+            widget={widget as HSliderWidget}
+            absoluteLeft={absoluteLeft}
+            absoluteTop={absoluteTop}
+            onValueChange={(value) => handleWidgetInteraction(widget.id, 'slider', value)}
+          />
+        );
       case 'VSLIDER':
         return (
-          <SliderComponent
+          <VSliderComponent
             key={widget.id}
-            widget={widget as SliderWidget}
+            widget={widget as VSliderWidget}
             absoluteLeft={absoluteLeft}
             absoluteTop={absoluteTop}
             onValueChange={(value) => handleWidgetInteraction(widget.id, 'slider', value)}
@@ -96,7 +106,7 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
 
   return (
     // GestureHandlerRootView should wrap the entire application
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+    <View style={{ flexGrow: 1 }}>
         <View
           style={{
             flex: 1,
@@ -128,7 +138,7 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             {layout.widgets.map(renderWidget)}
           </View>
         </View>
-    </ScrollView>
+    </View>
   );
 };
 

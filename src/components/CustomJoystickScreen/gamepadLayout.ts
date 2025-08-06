@@ -1,6 +1,6 @@
 /**
  * Gamepad Layout component for the Custom Joystick Screen
- * Creates a fixed gamepad-style layout exactly matching the provided gamepad image
+ * Creates a fixed gamepad-style layout with the new button configuration
  */
 
 import { JoystickButton } from './types';
@@ -8,7 +8,7 @@ import { getUsableScreenDimensions, constrainToScreenBounds } from './screenBoun
 
 /**
  * Creates a gamepad-style layout with fixed positioning
- * Matches the exact layout from the provided gamepad image
+ * Uses the new mapName:mapValue button configuration
  */
 export const createGamepadLayout = (): JoystickButton[] => {
   const bounds = getUsableScreenDimensions();
@@ -17,30 +17,27 @@ export const createGamepadLayout = (): JoystickButton[] => {
   const screenWidth = Math.max(bounds.width + (bounds.minX * 2), bounds.maxX);
   const screenHeight = Math.max(bounds.height + bounds.minY + 20, bounds.maxY);
   
-  // Calculate positions based on screen dimensions to match the image
-  const leftJoystickX = screenWidth * 0.18;
-  const rightJoystickX = screenWidth * 0.75;
-  const joystickY = screenHeight * 0.70; // Adjusted to be more centered
-  
+  // Calculate positions based on screen dimensions
   const dpadX = screenWidth * 0.12;
-  const dpadY = screenHeight * 0.40; // Adjusted to be more centered
+  const dpadY = screenHeight * 0.50;
   
   const actionButtonsX = screenWidth * 0.85;
-  const actionButtonsY = screenHeight * 0.50; // Adjusted to be more centered
-  const shoulderButtonsY = bounds.minY + 20; // Just below header
-  const macroButtonsX = screenWidth * 0.45;
-  const macroButtonsY = screenHeight * 0.30;
+  const actionButtonsY = screenHeight * 0.50;
+  
+  const sliderX = screenWidth * 0.50;
+  const sliderY = screenHeight * 0.25;
   
   // Helper function to create button with constrained position
   const createButton = (
     id: string,
-    type: 'joystick' | 'direction' | 'action' | 'toggle',
+    type: 'direction' | 'action' | 'slider',
     label: string,
     x: number,
     y: number,
     size: number,
     color: string,
-    config: any
+    mapName: string,
+    mapValue: number
   ): JoystickButton => {
     const constrainedPos = constrainToScreenBounds(x, y, size);
     return {
@@ -51,36 +48,13 @@ export const createGamepadLayout = (): JoystickButton[] => {
       y: constrainedPos.y,
       size,
       color,
-      config
+      mapName,
+      mapValue
     };
   };
   
   return [
-    // Left Joystick (large, yellow/gold)
-    createButton(
-      'left-joystick',
-      'joystick',
-      '',
-      leftJoystickX,
-      joystickY,
-      85,
-      '#FFD700',
-      { sensitivity: 50 }
-    ),
-    
-    // Right Joystick (large, yellow/gold)
-    createButton(
-      'right-joystick',
-      'joystick',
-      '',
-      rightJoystickX,
-      joystickY,
-      85,
-      '#FFD700',
-      { sensitivity: 50 }
-    ),
-    
-    // D-Pad (Direction buttons arranged in cross pattern with yellow triangles)
+    // D-Pad (Direction buttons arranged in cross pattern)
     createButton(
       'dpad-up',
       'direction',
@@ -88,8 +62,9 @@ export const createGamepadLayout = (): JoystickButton[] => {
       dpadX,
       dpadY - 50,
       45,
-      '#FFD700',
-      { direction: 'up' }
+      '#2563eb',
+      'forward',
+      100
     ),
     createButton(
       'dpad-down',
@@ -98,8 +73,9 @@ export const createGamepadLayout = (): JoystickButton[] => {
       dpadX,
       dpadY + 50,
       45,
-      '#FFD700',
-      { direction: 'down' }
+      '#2563eb',
+      'backward',
+      100
     ),
     createButton(
       'dpad-left',
@@ -108,8 +84,9 @@ export const createGamepadLayout = (): JoystickButton[] => {
       dpadX - 50,
       dpadY,
       45,
-      '#FFD700',
-      { direction: 'left' }
+      '#2563eb',
+      'left',
+      100
     ),
     createButton(
       'dpad-right',
@@ -118,40 +95,22 @@ export const createGamepadLayout = (): JoystickButton[] => {
       dpadX + 50,
       dpadY,
       45,
-      '#FFD700',
-      { direction: 'right' }
+      '#2563eb',
+      'right',
+      100
     ),
     
-    // Action Buttons (arranged in diamond pattern like Xbox controller)
-    createButton(
-      'action-y',
-      'action',
-      'Y',
-      actionButtonsX,
-      actionButtonsY - 50,
-      42,
-      '#32CD32',
-      { action: 'jump' }
-    ),
+    // Action Buttons (arranged in diamond pattern)
     createButton(
       'action-a',
       'action',
       'A',
       actionButtonsX,
       actionButtonsY + 50,
-      42,
-      '#32CD32',
-      { action: 'confirm' }
-    ),
-    createButton(
-      'action-x',
-      'action',
-      'X',
-      actionButtonsX - 50,
-      actionButtonsY,
-      42,
-      '#1E90FF',
-      { action: 'interact' }
+      45,
+      '#16a34a',
+      'fire',
+      100
     ),
     createButton(
       'action-b',
@@ -159,84 +118,69 @@ export const createGamepadLayout = (): JoystickButton[] => {
       'B',
       actionButtonsX + 50,
       actionButtonsY,
-      42,
-      '#FF6347',
-      { action: 'cancel' }
+      45,
+      '#dc2626',
+      'grab',
+      100
     ),
-      // Horn Button (positioned at bottom center)
     createButton(
+      'action-x',
+      'action',
+      'X',
+      actionButtonsX - 50,
+      actionButtonsY,
+      45,
+      '#0891b2',
+      'release',
+      100
+    ),
+    createButton(
+      'action-y',
+      'action',
+      'Y',
+      actionButtonsX,
+      actionButtonsY - 50,
+      45,
+      '#f59e0b',
       'horn',
-      'action',
-      '🔊',
-      screenWidth * 0.5,
-      screenHeight * 0.85,
-      50,
-      '#FFD700',
-      { action: 'horn' }
+      100
     ),
     
-    // Shoulder Buttons (positioned at the top)
-    // createButton(
-    //   'l1',
-    //   'action',
-    //   'L1',
-    //   screenWidth * 0.78,
-    //   shoulderButtonsY,
-    //   42,
-    //   '#808080',
-    //   { action: 'custom' }
-    // ),
-    // createButton(
-    //   'l2',
-    //   'action',
-    //   'L2',
-    //   screenWidth * 0.88,
-    //   shoulderButtonsY,
-    //   42,
-    //   '#808080',
-    //   { action: 'custom' }
-    // ),
-    // createButton(
-    //   'r1',
-    //   'action',
-    //   'R1',
-    //   screenWidth * 0.78,
-    //   shoulderButtonsY + 65,
-    //   42,
-    //   '#808080',
-    //   { action: 'custom' }
-    // ),
-    // createButton(
-    //   'r2',
-    //   'action',
-    //   'R2',
-    //   screenWidth * 0.88,
-    //   shoulderButtonsY + 65,
-    //   42,
-    //   '#808080',
-    //   { action: 'custom' }
-    // ),
-    
-    // Menu/System Buttons (positioned in the center)
+    // Speed Control Slider
     createButton(
-      'menu',
+      'speed-slider',
+      'slider',
+      'Speed',
+      sliderX,
+      sliderY,
+      100,
+      '#7c3aed',
+      'speed',
+      500
+    ),
+    
+    // Additional Action Buttons
+    createButton(
+      'lights',
       'action',
-      'MENU',
-      screenWidth * 0.45,
-      screenHeight * 0.58,
-      38,
-      '#333333',
-      { action: 'custom' }
+      'Lights',
+      screenWidth * 0.3,
+      screenHeight * 0.65,
+      40,
+      '#ea580c',
+      'lights',
+      100
     ),
     createButton(
-      'back',
+      'camera',
       'action',
-      'BACK',
-      screenWidth * 0.55,
-      screenHeight * 0.58,
-      38,
-      '#333333',
-      { action: 'custom' }
+      'Camera',
+      screenWidth * 0.65,
+      screenHeight * 0.64,
+      40,
+      '#e11d48',
+      'camera',
+      100
     ),
   ];
 };

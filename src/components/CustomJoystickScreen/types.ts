@@ -4,18 +4,14 @@
 
 export interface JoystickButton {
   id: string;
-  type: string;
+  type: 'direction' | 'action' | 'slider';
   label: string;
   x: number;
   y: number;
   size: number;
   color: string;
-  config?: {
-    direction?: string;
-    action?: string;
-    sensitivity?: number;
-    customCommand?: string;
-  };
+  mapName: string; // The key used for data transmission (e.g., 'forward', 'backward', 'fire')
+  mapValue: number; // The value sent when button is pressed/activated
 }
 
 export interface SavedLayout {
@@ -26,16 +22,14 @@ export interface SavedLayout {
 }
 
 export interface ButtonConfig {
-  direction: string;
-  action: string;
+  mapName: string;
+  mapValue: number;
   size: number;
   color: string;
-  sensitivity: number;
-  customCommand: string;
 }
 
 export interface ButtonTypeOption {
-  type: string;
+  type: 'direction' | 'action' | 'slider';
   label: string;
   icon: string;
 }
