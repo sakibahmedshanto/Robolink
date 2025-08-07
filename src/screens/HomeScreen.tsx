@@ -69,11 +69,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
             <TouchableOpacity
               style={styles.optionButton}
-              onPress={() => handleButton('Virtual Gamepad')}
+              onPress={() => {}}
             >
               <View style={styles.optionContent}>
-                <Text style={styles.optionIcon}>📱</Text>
-                <Text style={styles.optionTitle}>Virtual Gamepad</Text>
+                <Text style={styles.optionIcon}>🖥️</Text>
+                <Text style={styles.optionTitle}>Create IoT Apps</Text>
               </View>
             </TouchableOpacity>
 
@@ -82,7 +82,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
               onPress={() => handleButton('CustomControllerList')}
             >
               <View style={styles.optionContent}>
-                <Text style={styles.optionIcon}>⚙️</Text>
+                <Text style={styles.optionIcon}>📱</Text>
                 <Text style={styles.optionTitle}>Your Apps</Text>
               </View>
             </TouchableOpacity>

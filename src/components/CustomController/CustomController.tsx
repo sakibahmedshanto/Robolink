@@ -11,9 +11,9 @@ import JoystickComponent, { JoystickWidget } from './JoystickComponent';
 import ToggleComponent, { ToggleWidget } from './ToggleButtonComponent';
 import ButtonComponent, { ButtonWidget } from './ButtonComponent';
 import HSliderComponent, { HSliderWidget } from './HSliderComponent';
+import { Widget, WidgetType } from '../../types/widget';
 
 
-type Widget = JoystickWidget | ButtonWidget | ToggleWidget | HSliderWidget | VSliderWidget;
 
 interface ControllerLayout {
   templateId: string;
@@ -32,7 +32,7 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
   // Get the full width and height of the device screen
   const { width: deviceWidth, height: deviceHeight } = Dimensions.get('window');
 
-  const handleWidgetInteraction = (widgetId: string, type: string, value: any) => {
+  const handleWidgetInteraction = (widgetId: string, type: WidgetType, value: any) => {
     onWidgetInteraction?.(widgetId, type, value);
   };
 
@@ -49,7 +49,7 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             widget={widget as JoystickWidget}
             absoluteLeft={absoluteLeft}
             absoluteTop={absoluteTop}
-            onValueChange={(x, y) => handleWidgetInteraction(widget.id, 'joystick', { x, y })}
+            onValueChange={(x, y) => handleWidgetInteraction(widget.id, 'JOYSTICK', { x, y })}
           />
         );
 
@@ -61,9 +61,9 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             widget={widget as ButtonWidget}
             absoluteLeft={absoluteLeft}
             absoluteTop={absoluteTop}
-            onPress={() => handleWidgetInteraction(widget.id, 'button_press', true)}
-            onPressIn={() => handleWidgetInteraction(widget.id, 'button_down', true)}
-            onPressOut={() => handleWidgetInteraction(widget.id, 'button_up', false)}
+            onPress={() => {}}
+            onPressIn={() => handleWidgetInteraction(widget.id, 'BUTTON', 1)}
+            onPressOut={() => handleWidgetInteraction(widget.id, 'BUTTON', 0)}
           />
         );
 
@@ -74,7 +74,7 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             widget={widget as ToggleWidget}
             absoluteLeft={absoluteLeft}
             absoluteTop={absoluteTop}
-            onToggle={(value) => handleWidgetInteraction(widget.id, 'toggle', value)}
+            onToggle={(value) => handleWidgetInteraction(widget.id, 'TOGGLE', value)}
           />
         );
 
@@ -85,7 +85,7 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             widget={widget as HSliderWidget}
             absoluteLeft={absoluteLeft}
             absoluteTop={absoluteTop}
-            onValueChange={(value) => handleWidgetInteraction(widget.id, 'slider', value)}
+            onValueChange={(value) => handleWidgetInteraction(widget.id, 'HSLIDER', value)}
           />
         );
       case 'VSLIDER':
@@ -95,7 +95,7 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             widget={widget as VSliderWidget}
             absoluteLeft={absoluteLeft}
             absoluteTop={absoluteTop}
-            onValueChange={(value) => handleWidgetInteraction(widget.id, 'slider', value)}
+            onValueChange={(value) => handleWidgetInteraction(widget.id, 'VSLIDER', value)}
           />
         );
 

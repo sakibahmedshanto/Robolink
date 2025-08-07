@@ -12,10 +12,14 @@ import {
 import Icon from 'react-native-vector-icons/FontAwesome6';
 import CustomController from '../components/CustomController/CustomController';
 import Orientation from 'react-native-orientation-locker';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { primaryColor } from '../const/theme';
 import { Layout } from '../types/layout';
+import { useBluetoothStatus, useDTS, useUdpStatus } from '../atoms/configs';
+import { BluetoothSerial } from '../specs';
+import { broadcastUdpData, useUdpSocket } from '../atoms/udp';
+import HeaderRightButtons from '../components/HeaderRightButtons';
 
 
 const CustomControllerScreen = ({ route }:{
@@ -25,16 +29,25 @@ const CustomControllerScreen = ({ route }:{
   const [mounted, setMounted] = useState(false);
   const navigation = useNavigation();
   const [controllerData, setControllerData] = useState<any | null>(null);
+  const [inputs, setInputs] = useState<{ [key: string]: any }>({});
+  const [bluetoothStatus, _] = useBluetoothStatus();
+  const [udpStatus, setUdpStatus] = useUdpStatus();
+  const inputsRef = useRef(inputs);
+  const btIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const udpIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { socket:udpSocket } = useUdpSocket();
 
   useEffect(() => {
     if(!route.params.layout?.layoutData) return;
     try {
-      setControllerData(JSON.parse(route.params.layout?.layoutData));
+      const parsedData = JSON.parse(route.params.layout.layoutData);
+      setControllerData(parsedData);
     } catch (error) {
       console.log(error);
       Alert.alert((error as Error).message);
     }
   }, [route.params.layout])
+
   useEffect(() => {
     // Lock the screen to landscape when the component mounts
     Orientation.lockToLandscape();
@@ -45,13 +58,81 @@ const CustomControllerScreen = ({ route }:{
     };
   }, []);
 
+  useEffect(() => {
+    inputsRef.current = inputs;
+  }, [inputs]);
+
+
+  useEffect(() => {
+    if (!bluetoothStatus.isConnected || !bluetoothStatus.enableSendOverBT) return;
+    if (btIntervalRef.current) clearInterval(btIntervalRef.current);
+
+    btIntervalRef.current = setInterval(() => {
+      const inputs = inputsRef.current;
+      const result = getMessage(inputs);
+      BluetoothSerial.writeToDevice(btoa(result));
+    }, bluetoothStatus.intervalDelay || 100);
+    return () => {
+      if (btIntervalRef.current) clearInterval(btIntervalRef.current);
+    };
+  }, [bluetoothStatus.isConnected, bluetoothStatus.enableSendOverBT, bluetoothStatus.intervalDelay]);
+
+
+  useEffect(() => {
+    if (!udpStatus.enableSendOverUdp) {
+      if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+      return;
+    }
+    if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+
+    udpIntervalRef.current = setInterval(() => {
+      if (!udpStatus.enableSendOverUdp) {
+        if(udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+        return;
+      }
+      
+      const inputs = inputsRef.current;
+      const result = getMessage(inputs);
+      if(udpSocket) broadcastUdpData(udpSocket, result, udpStatus.port);
+      else console.warn('UDP socket not available');
+    }, udpStatus.intervalDelay || 100);
+
+    return () => {
+      if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+      setUdpStatus(prev => ({ ...prev, enableSendOverUdp: false })); // Reset UDP status
+    }
+  
+  }, [udpStatus.enableSendOverUdp, udpStatus.intervalDelay, udpStatus.port])
+
+
+  const getMessage = (inputs: any) => {
+    let result = `<${Object.keys(inputs).length} `;
+    for (const [Key, val] of Object.entries(inputs)) {
+      result += `${inputs[Key] || 0} `;
+    }
+    result += '>';
+    return result;
+  }
+  
+  const updateInputs = (evt: { [key: string]: any }) => {
+    setInputs(prev => ({ ...prev, ...evt }));
+  };
+
   const handleWidgetInteraction = (
     widgetId: string,
     type: string,
     value: any,
   ) => {
-    console.log(`Widget ${widgetId} - ${type}:`, value);
+    // console.log(`Widget ${widgetId} - ${type}:`, value);
     // Handle the interaction (send to game, update state, etc.)
+    if (type === 'JOYSTICK') {
+      updateInputs({ [widgetId+"X"]: value.x, [widgetId+"Y"]: value.y });
+    } else if (type === 'BUTTON' || type === 'TOGGLE' || type === 'GPBUTTON') {
+      updateInputs({ [widgetId]: value ? 1 : 0 });
+    } else if (type === 'HSLIDER' || type === 'VSLIDER') {
+      updateInputs({ [widgetId]: value });
+    }
+
   };
 
   function goBack() {
@@ -80,8 +161,7 @@ const CustomControllerScreen = ({ route }:{
                   : null
                 }
               </View>
-
-              <View></View>
+                <HeaderRightButtons />
             </View>
           </View>
           {
