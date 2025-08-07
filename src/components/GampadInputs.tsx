@@ -2,14 +2,14 @@ import React, { useState, useEffect, use, useRef, useCallback } from 'react';
 import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import CheckBox from '@react-native-community/checkbox';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Buffer } from 'buffer';
 import { BluetoothSerial, GlobalKeyEvent } from '../specs';
 import { JoystickKeyMap } from '../const/JoystickKeyMap';
-import { useBluetoothStatus, useDTS } from '../atoms/configs';
+import { useBluetoothStatus, useDTS, useUdpStatus } from '../atoms/configs';
 import MyButton from './Button';
-import { primaryColor, secondaryColor } from '../const/theme';
+import { primaryColor } from '../const/theme';
 import TopHeaderButtons from './TopHeaderButtons';
-import { useUdpSingleton } from '../hooks/useUdpSingleton';
+import { broadcastUdpData, useUdpSocket } from '../atoms/udp';
+// import { broadcastUdpData, udpSocket } from '../utils/udp';
 
 const styles = StyleSheet.create({
   container: {
@@ -50,26 +50,21 @@ const styles = StyleSheet.create({
   },
   dts: {
     paddingTop: 16,
-  },
+  }
 });
 
 export default function GamepadViewer() {
   const [showSaveBtn, setShowSaveBtn] = useState(false);
   const [inputs, setInputs] = useState<{ [key: string]: any }>({});
-  const [canEdit, setToggleEdit] = useState(false);
+  const [ canEdit, setToggleEdit ] = useState(false);
   const [dts, setDTS] = useDTS();
   const [bluetoothStatus, _] = useBluetoothStatus();
-  const { startTransmission, stopTransmission } = useUdpSingleton();
+  const [udpStatus, __] = useUdpStatus();
   const inputsRef = useRef(inputs);
   const dtsRef = useRef(dts);
   const btIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastDataRef = useRef<string>(''); // Track last sent data
-  // Real-time input handling - no buffering, immediate response
-  const lastInputValueRef = useRef<{ [key: string]: any }>({});
-  const lastAnalogSendTimeRef = useRef<{ [key: string]: number }>({});
-  
-  const ANALOG_SEND_INTERVAL = 50; // Only limit analog inputs to 20fps
-  const BUTTON_DEAD_ZONE = 0.1; // Threshold for analog inputs to be considered "pressed"
+  const udpIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { socket:udpSocket } = useUdpSocket();
 
   useEffect(() => {
     inputsRef.current = inputs;
@@ -78,73 +73,48 @@ export default function GamepadViewer() {
   useEffect(() => {
     dtsRef.current = dts;
   }, [dts]);
+
   useEffect(() => {
-    if (!bluetoothStatus.isConnected || !bluetoothStatus.enableSendOverBT)
-      return;
+    if (!bluetoothStatus.isConnected || !bluetoothStatus.enableSendOverBT) return;
     if (btIntervalRef.current) clearInterval(btIntervalRef.current);
 
     btIntervalRef.current = setInterval(() => {
       const inputs = inputsRef.current;
       const dts = dtsRef.current;
-      // Create simple key-value format - much easier for Arduino/ESP32 to parse
-      const gamepadValues: string[] = [];
-
-      // Add all active inputs as simple key=value pairs
-      Object.keys(dts).forEach(key => {
-        const value = inputs[key] || 0;
-        const keyName = JoystickKeyMap[key as keyof typeof JoystickKeyMap] || key;
-
-        // Only send non-zero values to reduce data size
-        if (value !== 0) {
-          gamepadValues.push(`${keyName}=${value}`);
-        }
-      });
-
-      const simpleMessage = gamepadValues.join(',');
-      BluetoothSerial.writeToDevice(simpleMessage); console.log('📡 Sent gamepad data via Bluetooth:', simpleMessage);
+      const result = getMessage(dts, inputs);
+      BluetoothSerial.writeToDevice(btoa(result));
     }, bluetoothStatus.intervalDelay || 100);
-
     return () => {
       if (btIntervalRef.current) clearInterval(btIntervalRef.current);
     };
-  }, [
-    bluetoothStatus.isConnected,
-    bluetoothStatus.enableSendOverBT,
-    bluetoothStatus.intervalDelay,  ]);
-  // UDP transmission using singleton
+  }, [bluetoothStatus.isConnected, bluetoothStatus.enableSendOverBT, bluetoothStatus.intervalDelay]);
+
+
   useEffect(() => {
-    console.log('🔧 GamepadInputs - Setting up UDP transmission');
-    
-    const createDataMessage = (): string => {
+    if (!udpStatus.enableSendOverUdp) {
+      if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+      return;
+    }
+    if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+
+    udpIntervalRef.current = setInterval(() => {
+      if (!udpStatus.enableSendOverUdp) {
+        if(udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+        return;
+      }
+      
       const inputs = inputsRef.current;
       const dts = dtsRef.current;
-
-      // Create simple key-value format - much easier for Arduino/ESP32 to parse
-      const gamepadValues: string[] = [];
-
-      // Add all active inputs as simple key=value pairs
-      Object.keys(dts).forEach(key => {
-        const value = inputs[key] || 0;
-        const keyName = JoystickKeyMap[key as keyof typeof JoystickKeyMap] || key;
-
-        // Only send non-zero values to reduce data size
-        if (value !== 0) {
-          gamepadValues.push(`${keyName}=${value}`);
-        }
-      });
-
-      // Format: "LX=0.5,RY=-0.8,A=1,B=0" - super easy to parse with split() and simple string operations
-      return gamepadValues.join(',');
-    };
-
-    // Start UDP transmission with the data callback
-    startTransmission(createDataMessage);
+      const result = getMessage(dts, inputs);
+      if(udpSocket) broadcastUdpData(udpSocket, result, udpStatus.port);
+      else console.warn('UDP socket not available');
+    }, udpStatus.intervalDelay || 100);
 
     return () => {
-      console.log('🔧 GamepadInputs - Cleaning up UDP transmission');
-      stopTransmission();
-    };
-  }, []); // Empty dependency array - we only want to set this up once
+      if (udpIntervalRef.current) clearInterval(udpIntervalRef.current);
+    }
+  
+  }, [udpStatus.enableSendOverUdp, udpStatus.intervalDelay, udpStatus.port])
 
   useEffect(() => {
     const initialInputs = {
@@ -153,124 +123,42 @@ export default function GamepadViewer() {
     console.log('GamepadViewer initialInputs', initialInputs);
     setDTS(initialInputs);
 
-    AsyncStorage.getItem('dts').then(data => {
-      if (data) {
-        const parsedData = JSON.parse(data);
-        setDTS(parsedData);
-        setInputs(prev => ({ ...prev, ...parsedData }));
-      } else setDTS(initialInputs);
-    });
-  }, []);  useEffect(() => {
+    AsyncStorage.getItem('dts')
+      .then((data) => {
+        if (data) {
+          const parsedData = JSON.parse(data);
+          setDTS(parsedData);
+          setInputs(prev => ({ ...prev, ...parsedData }));
+        } else setDTS(initialInputs);
+
+      });
+  }, []);
+
+
+  useEffect(() => {
     const subs = [
       GlobalKeyEvent.addKeyUpListener(updateInputs),
       GlobalKeyEvent.addKeyDownListener(updateInputs),
       GlobalKeyEvent.onJoystickMoveListener(updateInputs),
     ];
 
-    return () => {
-      subs.forEach(sub => sub.remove());
-    };
+    return () => subs.forEach(sub => sub.remove());
   }, []);
+
   const onToggleCheck = () => {
     setToggleEdit(prev => !prev);
-  };
-  const getGamepadDataPreview = (dts: any, inputs: any) => {
-    // Create simple key-value format preview - much easier for Arduino/ESP32 to parse
-    const gamepadValues: string[] = [];
+  }
 
-    // Add all active inputs as simple key=value pairs
-    Object.keys(dts).forEach(key => {
-      const value = inputs[key] || 0;
-      const keyName = JoystickKeyMap[key as keyof typeof JoystickKeyMap] || key;
-
-      // Show all values in preview (including zeros for reference)
-      gamepadValues.push(`${keyName}=${value}`);
-    });
-
-    // Format: "LX=0.5,RY=-0.8,A=1,B=0" - super easy to parse with split() and simple string operations
-    const simpleFormat = gamepadValues.join(',');
-
-    return (
-      <View>
-        <Text style={styles.value}>Simple Format (Arduino/ESP32 friendly):</Text>
-
-        <Text style={[styles.value, { fontFamily: 'monospace', marginVertical: 8 }]}>
-          {simpleFormat}
-        </Text>
-
-        <Text style={styles.value}>Example Arduino parsing:</Text>
-
-        <Text style={[styles.value, { fontFamily: 'monospace', fontSize: 11, marginTop: 4 }]}>
-          String data = "{simpleFormat}";
-        </Text>
-
-        <Text style={[styles.value, { fontFamily: 'monospace', fontSize: 11 }]}>
-          {`// Split by ',' then by '=' to get key-value pairs`}
-        </Text>
-      </View>
-    );
-  };  /**
-   * Real-time input handler - no buffering, immediate response for buttons
-   * Only rate-limits analog inputs to prevent excessive data transmission
-   */
-  const realtimeInputHandler = (evt: { [key: string]: any }) => {
-    const currentTime = Date.now();
-    const updates: { [key: string]: any } = {};
-    let hasButtonChanges = false;
-    let hasAnalogChanges = false;
-
-    Object.keys(evt).forEach(key => {
-      const newValue = evt[key];
-      const lastValue = lastInputValueRef.current[key];
-
-      // Detect if this is a button input (numeric keys are buttons)
-      const isButton = key.match(/^\d+$/);
-      
-      if (isButton) {
-        // BUTTONS: Send immediately on any change (press or release)
-        if (newValue !== lastValue) {
-          updates[key] = newValue;
-          lastInputValueRef.current[key] = newValue;
-          hasButtonChanges = true;
-          console.log(`🎮 [REALTIME] Button ${key}: ${lastValue} → ${newValue}`);
-        }
-      } else {
-        // ANALOG INPUTS: Rate limit but still responsive
-        const lastSendTime = lastAnalogSendTimeRef.current[key] || 0;
-        const timeSinceLastSend = currentTime - lastSendTime;
-        
-        // Send if: significant change OR enough time has passed
-        const significantChange = Math.abs((lastValue || 0) - newValue) > BUTTON_DEAD_ZONE;
-        const timeToSend = timeSinceLastSend >= ANALOG_SEND_INTERVAL;
-        
-        if (significantChange || timeToSend) {
-          updates[key] = newValue;
-          lastInputValueRef.current[key] = newValue;
-          lastAnalogSendTimeRef.current[key] = currentTime;
-          hasAnalogChanges = true;
-          if (significantChange) {
-            console.log(`🕹️ [REALTIME] Analog ${key}: ${lastValue} → ${newValue} (significant change)`);
-          }
-        }
-      }
-    });
-
-    // Apply updates immediately if we have any changes
-    if (hasButtonChanges || hasAnalogChanges) {
-      setInputs(prev => ({ ...prev, ...updates }));
-      
-      if (hasButtonChanges) {
-        console.log('⚡ [REALTIME] Button changes applied immediately');
-      }
-      if (hasAnalogChanges) {
-        console.log('🎯 [REALTIME] Analog changes applied');
-      }
+  const getMessage = (dts: any, inputs: any) => {
+    let result = `<${Object.keys(dts).length} `;
+    for (const [Key, val] of Object.entries(dts)) {
+      result += `${inputs[Key] || 0} `;
     }
-  };
-
+    result += '>';
+    return result;
+  }
   const updateInputs = (evt: { [key: string]: any }) => {
-    // Use real-time handler for immediate response
-    realtimeInputHandler(evt);
+    setInputs(prev => ({ ...prev, ...evt }));
   };
 
   const toggleDTS = (key: string) => {
@@ -288,15 +176,17 @@ export default function GamepadViewer() {
   const saveDTS = async () => {
     await AsyncStorage.setItem('dts', JSON.stringify(dts));
     setShowSaveBtn(false);
-  };
+  }
 
   const renderButton = (key: string) => {
     return (
-      <View style={{
-        ...styles.row,
-        backgroundColor: inputs[key] ? '#00000010' : 'transparent',
-      }}
-        key={key}>
+      <View
+        style={{
+          ...styles.row,
+          backgroundColor: inputs[key] ? '#00000010' : 'transparent',
+        }}
+        key={key}
+      >
         <View
           style={{
             flex: 1,
@@ -310,19 +200,12 @@ export default function GamepadViewer() {
           </Text>
           <Text style={styles.value}> {inputs[key] || 0}</Text>
         </View>
-        <CheckBox
-          tintColors={{
-            true: canEdit ? primaryColor : '#ffffff33',
-            false: 'white',
-          }}
-          onFillColor={canEdit ? primaryColor : '#ccc'}
-          disabled={!canEdit}
-          value={dts[key] || dts[key] == 0}
-          onChange={() => toggleDTS(key)}
+        <CheckBox tintColors={{ true: canEdit ? primaryColor : "#ffffff33", false: 'white' }} onFillColor={canEdit ? primaryColor : "#ccc"} disabled={!canEdit} value={dts[key] || dts[key] == 0} onChange={() => toggleDTS(key)}
         />
       </View>
     );
   };
+
 
   const renderAxis = (key: string) => {
     return (
@@ -349,15 +232,7 @@ export default function GamepadViewer() {
           </Text>
           <Text style={styles.value}> {inputs[key] || 0}</Text>
         </View>
-        <CheckBox
-          tintColors={{
-            true: canEdit ? primaryColor : '#ffffff33',
-            false: 'white',
-          }}
-          onFillColor={canEdit ? primaryColor : '#ccc'}
-          disabled={!canEdit}
-          value={dts[key] || dts[key] == 0}
-          onChange={() => toggleDTS(key)}
+        <CheckBox tintColors={{ true: canEdit ? primaryColor : "#ffffff33", false: 'white' }} onFillColor={canEdit ? primaryColor : "#ccc"} disabled={!canEdit} value={dts[key] || dts[key] == 0} onChange={() => toggleDTS(key)}
         />
       </View>
     );
@@ -365,49 +240,23 @@ export default function GamepadViewer() {
 
   return (
     <ScrollView>
-      <TopHeaderButtons enableCheck={canEdit} onCheckPress={onToggleCheck} />
+      <TopHeaderButtons
+        enableCheck={canEdit}
+        onCheckPress={onToggleCheck}
+      />
       <View style={styles.container}>
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={styles.sectionTitle}>Buttons</Text>
-          {showSaveBtn ? (
-            <MyButton
-              title="Save"
-              onPress={saveDTS}
-              style={{ backgroundColor: '#ff0' }}
-            />
-          ) : null}
+          {
+            showSaveBtn && <MyButton title='Save' onPress={saveDTS} style={{backgroundColor: "#ff0"}} />
+          }
         </View>
         <View
           style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            justifyContent: 'space-between',
-            alignItems: 'stretch',
+            flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'stretch',
           }}
         >
-          {[
-            '96',
-            '97',
-            '98',
-            '99',
-            '100',
-            '101',
-            '102',
-            '103',
-            '104',
-            '105',
-            '106',
-            '107',
-            '108',
-            '109',
-            '110',
-          ].map(renderButton)}
+          {['96', '97', '98', '99', '100', '101', '102', '103', '104', '105', '106', '107', '108', '109', '110'].map(renderButton)}
         </View>
 
         <Text style={styles.sectionTitle}>Axes</Text>
@@ -436,11 +285,12 @@ export default function GamepadViewer() {
           {['leftTrigger', 'rightTrigger'].map(renderAxis)}
         </View>
       </View>
+
       <View style={styles.dts}>
-        <Text style={styles.title}>Simple Data Format (Arduino/ESP32 Friendly!)</Text>
-        <ScrollView style={{ maxHeight: 200 }}>
-          {getGamepadDataPreview(dts, inputs)}
-        </ScrollView>
+        <Text style={styles.title}>Data Format</Text>
+        <Text style={styles.value}>
+          {getMessage(dts, inputs)}
+        </Text>
       </View>
     </ScrollView>
   );

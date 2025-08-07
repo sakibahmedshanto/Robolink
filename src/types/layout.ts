@@ -1,0 +1,20 @@
+export interface Layout {
+    _id: string,
+    title: string,
+    description: string,
+    layoutData: string,
+    arduinoCode: string,
+    readme: string,
+    tags: string [],
+    category: string,
+    isPublic: boolean,
+    userId: string,
+    userName: string,
+    userEmail: string,
+    likes: number,
+    downloads: number,
+    likedBy: string[],
+    createdAt: string,
+    updatedAt: string,
+    __v?: number
+}

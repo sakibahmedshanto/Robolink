@@ -18,7 +18,6 @@ import { BluetoothSerial } from "./src/specs";
 import { useEffect } from 'react';
 import { showToast } from './src/components/toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import UdpManager from './src/services/UdpManager';
 import HomeScreen from './src/screens/HomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import { BackHandler } from 'react-native';
@@ -68,6 +67,12 @@ const RootStack = createNativeStackNavigator({
         headerRight: () => <></>
       },
     },
+    CustomController: {
+      screen: CustomControllerScreen,
+      options: {
+        headerShown: false,
+      },
+    },
   },
 });
 
@@ -78,25 +83,6 @@ const Navigation = createStaticNavigation(RootStack);
 function App() {
   const [ _, setBluetoothStatus ] = useBluetoothStatus();
   const [ __, setUdpStatus] = useUdpStatus();
-  // const navigation = useNavigation();
-  
-  // useEffect(() => {
-  //     const backAction = () => {
-  //     // This is the action to perform when the back button is pressed.
-  //     // We'll use the navigation.goBack() function to navigate back.
-  //     // Returning true from the event handler prevents the default action (app exit).
-  //     navigation.goBack();
-  //     return true;
-  //   };
-  //   const backHandler = BackHandler.addEventListener(
-  //     'hardwareBackPress',
-  //     backAction,
-  //   );
-  //   // This cleanup function is crucial. It removes the event listener
-  //   // when the component is unmounted to prevent memory leaks.
-  //   return () => backHandler.remove();
-  // }, [navigation]); // The dependency array ensures the effect runs only once or when 'navigation' changes.
-
   
   useEffect(() => {
     initializeBluetoothStatus();
@@ -190,15 +176,7 @@ function App() {
         intervalDelay: udpIntervalDelay,
         port
       }));
-
-      // Initialize UDP singleton with loaded config
-      const udpManager = UdpManager.getInstance();
-      await udpManager.initialize({
-        port,
-        enabled: enableUdpTransmission,
-        intervalDelay: udpIntervalDelay
-      });
-      
+      console.log("UDP Port:", port);
     } catch (error) {
       console.error('Error loading UDP status from storage:', error);
     }

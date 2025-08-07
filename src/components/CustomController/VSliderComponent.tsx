@@ -61,7 +61,7 @@ const VSliderComponent: React.FC<{
           initialValue={value}
           barColor={widget.color}
           color={widget.color}
-          backgroundColor={"lightgray"}
+          backgroundColor={"white"}
           onValueChange={handleValueChange}          
           containerStyle={{ 
             width: widget.width - 12, // Account for padding

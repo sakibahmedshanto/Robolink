@@ -41,14 +41,14 @@ const HeaderRightButtons = () => {
   return (
   <View style={styles.container}>
     <Icon.Button
+        backgroundColor="#D72638"
         color={bluetoothStatus.isEnabled ? "#00ff47" : "#fff"}
-        backgroundColor="transparent"
         name={bluetoothStatus.isConnected ? "bluetooth-connected" : "bluetooth"}
         onPress={() => setButtonPressed('bluetooth')}
     />
     <Icon.Button
         name="wifi"
-        backgroundColor="transparent"
+        backgroundColor="#D72638"
         // color={buttonPressed == "wifi" ? "#00ff47" : "#fff"}
         onPress={() => setButtonPressed('wifi')}
     />
@@ -259,27 +259,14 @@ const WifiModal = ({ visible, onClose }:{visible:boolean, onClose:() => void}) =
         setUdpStatus((prev)=>({...prev, ipAddress}));
       })
   }, [])
+
   const toggleUdp = async () => {
     const previousEnableUdp = udpStatus.enableSendOverUdp;
-    console.log('🔧 UDP Toggle - Previous state:', previousEnableUdp);
-    console.log('🔧 UDP Toggle - New state will be:', !previousEnableUdp);
-    
     setUdpStatus((prev) => ({
       ...prev,
       enableSendOverUdp: !prev.enableSendOverUdp
     }));
-    
     await AsyncStorage.setItem('enableUdpTransmission', String(!previousEnableUdp));
-    console.log('🔧 UDP Toggle - Saved to AsyncStorage:', String(!previousEnableUdp));
-    
-    // Update UDP singleton immediately
-    const UdpManager = require('../services/UdpManager').default;
-    const udpManager = UdpManager.getInstance();
-    await udpManager.initialize({
-      port: udpStatus.port,
-      enabled: !previousEnableUdp,
-      intervalDelay: udpStatus.intervalDelay
-    });
   }
 
 
@@ -307,15 +294,14 @@ const WifiModal = ({ visible, onClose }:{visible:boolean, onClose:() => void}) =
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <View style={{ width: 320, padding: 10, backgroundColor: 'white', borderRadius: 10 }}>
         {
-          udpStatus.ipAddress ? (
+          udpStatus.ipAddress && 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
             <Text style={{color: "black"}}>IP:</Text>
             <Text style={{color: "black"}}>{udpStatus.ipAddress}</Text>
           </View>
-          ) : null
         }
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginBottom: 10 }}>
@@ -335,14 +321,14 @@ const WifiModal = ({ visible, onClose }:{visible:boolean, onClose:() => void}) =
               />
             </View>
             {
-              interval !== `${udpStatus.intervalDelay}` ?
+              interval != `${udpStatus.intervalDelay}` &&
               (
                 <MyButton
                  title='Save'
                  style={{ backgroundColor: '#ef53504f' }}
                  onPress={saveInterval}
                 />
-              ) : null
+              )
             }
           </View>
         <Button title="Close" onPress={onClose} color={primaryColor} />

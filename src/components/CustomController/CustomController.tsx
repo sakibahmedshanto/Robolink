@@ -106,7 +106,7 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
 
   return (
     // GestureHandlerRootView should wrap the entire application
-    <View style={{ flexGrow: 1 }}>
+    <View style={{ flexGrow: 1,paddingBottom: 20, backgroundColor: 'white' }}>
         <View
           style={{
             flex: 1,
@@ -114,6 +114,7 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             // The main container now takes up the full device width and height
             width: deviceWidth,
             height: deviceHeight -10,
+            
             position: 'relative', // Important for absolute positioning of children
           }}
         >
@@ -124,15 +125,7 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
               flex: 1,
               backgroundColor: '#FFFFFF', // White background for the canvas itself
               position: 'relative', // Important for absolute positioning of children
-              borderWidth: 1,
-              borderColor: '#E0E0E0',
-              borderRadius: 10,
               overflow: 'hidden', // Clip content outside bounds
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 6,
-              elevation: 5,
             }}
           >
             {layout.widgets.map(renderWidget)}
