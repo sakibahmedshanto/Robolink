@@ -23,6 +23,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import { BackHandler } from 'react-native';
 import { primaryColor } from './src/const/theme';
+import CustomControllerListScreen from './src/screens/CustomControllerListScreen';
 
 
 const RootStack = createNativeStackNavigator({
@@ -59,11 +60,12 @@ const RootStack = createNativeStackNavigator({
         headerShown: true,
       },
     },
-    CustomController: {
-      screen: CustomControllerScreen,
+    CustomControllerList: {
+      screen: CustomControllerListScreen,
       options: {
-        title: 'Custom Controller',
-        headerShown: false,
+        title: 'My Apps',
+        headerShown: true,
+        headerRight: () => <></>
       },
     },
   },

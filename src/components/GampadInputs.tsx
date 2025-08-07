@@ -7,7 +7,7 @@ import { BluetoothSerial, GlobalKeyEvent } from '../specs';
 import { JoystickKeyMap } from '../const/JoystickKeyMap';
 import { useBluetoothStatus, useDTS } from '../atoms/configs';
 import MyButton from './Button';
-import { primaryColor } from '../const/theme';
+import { primaryColor, secondaryColor } from '../const/theme';
 import TopHeaderButtons from './TopHeaderButtons';
 import { useUdpSingleton } from '../hooks/useUdpSingleton';
 

@@ -1,5 +1,6 @@
 import { SafeAreaView, StatusBar, StyleSheet, useColorScheme, View, Button } from 'react-native';
 import GamepadInputs from '../components/GampadInputs';
+import { secondaryColor } from '../const/theme';
 
 type RootStackParamList = {
   GamepadInputs: undefined;
@@ -23,7 +24,7 @@ export default function GamepadInputScreen() {
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
-    backgroundColor: '#170F11',
+    backgroundColor: secondaryColor,
   },
   container: {
     flex: 1,

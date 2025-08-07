@@ -192,7 +192,6 @@ const CustomControllerScreen = () => {
           </View>
           <View style={styles.container}>
             <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-            <StatusBar barStyle={'dark-content'} />
             <CustomController
               layout={controllerData as any}
               onWidgetInteraction={handleWidgetInteraction}
@@ -214,7 +213,7 @@ const CustomControllerScreen = () => {
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
-    backgroundColor: '#170F11',
+    backgroundColor: primaryColor,
   },
   container: {
     flex: 1,

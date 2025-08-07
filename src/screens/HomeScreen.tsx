@@ -1,100 +1,115 @@
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    Alert,
-    StyleSheet,
-} from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { userUserLoaded, useUser } from '../atoms/user';
+import { getProfile } from '../services/User';
+import { deleteToken } from '../services/Storage';
 
 interface HomeScreenProps {
-    onLogout: () => void;
-    onNavigateToCustomScreen?: () => void;
+  onNavigateToCustomScreen?: () => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout, onNavigateToCustomScreen }) => {
-    const navigator = useNavigation<any>();
-    const handleButton = (screen: any) => {
-        navigator.navigate(screen);
-    };
+const HomeScreen: React.FC<HomeScreenProps> = ({
+  onNavigateToCustomScreen,
+}) => {
+  const navigator = useNavigation<any>();
+  const [user, setUser] = useUser();
+  const [userLoaded, setUserLoaded] = userUserLoaded();
 
-    const handleLogout = () => {
-        Alert.alert('Logout', 'Are you sure you want to logout?', [
-            {
-                text: 'Cancel',
-                style: 'cancel',
-            },
-            {
-                text: 'Logout',
-                style: 'destructive',
-                onPress: onLogout,
-            },
-        ]);
-    };
-    
-    return (
-        <View style={styles.container}>
-            <View style={styles.selectionContainer}>
-                <View style={styles.selectionContent}>
-                  
-                    <View style={styles.header}>
-                        <Text style={styles.title}>Welcome to Robolink</Text>
-                    </View>
-                    
-                    <View style={styles.optionsContainer}>
-                        <TouchableOpacity
-                            style={styles.optionButton}
-                            onPress={() => handleButton('GamepadInputs')}
-                        >
-                            <View style={styles.optionContent}>
-                                <Text style={styles.optionIcon}>🎮</Text>
-                                <Text style={styles.optionTitle}>Physical Gamepad</Text>
-                            </View>
-                        </TouchableOpacity>
+  useEffect(() => {
+    getProfile()
+      .then(data => {
+        setUser(data);
+        setUserLoaded(true);
+      })
+      .catch(error => {
+        console.error('Error fetching user profile:', error);
+      });
+  }, []);
 
-                        <TouchableOpacity
-                            style={styles.optionButton}
-                            onPress={() => handleButton('Virtual Gamepad')}
-                        >
-                            <View style={styles.optionContent}>
-                                <Text style={styles.optionIcon}>📱</Text>
-                                <Text style={styles.optionTitle}>Virtual Gamepad</Text>
-                            </View>
-                        </TouchableOpacity>
+  const handleButton = (screen: any) => {
+    navigator.navigate(screen);
+  };
 
-                        <TouchableOpacity
-                            style={styles.optionButton}
-                            onPress={() => handleButton('CustomController')}
-                        >
-                            <View style={styles.optionContent}>
-                                <Text style={styles.optionIcon}>⚙️</Text>
-                                <Text style={styles.optionTitle}>Your Apps</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </View>
+  const logout = () => {
+    deleteToken();
+  }
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: logout,
+      },
+    ]);
+  };
 
-                    {/* Logout Button */}
-                    {/* <TouchableOpacity
-                        style={styles.logoutButton}
-                        onPress={handleLogout}
-                    >
-                        <Text style={styles.logoutButtonText}>Logout</Text>
-                    </TouchableOpacity> */}
-                    
-                    <TouchableOpacity
-                        style={styles.optionButton}
-                        onPress={() => handleButton('Login')}
-                    >
-                        <View style={styles.optionContent}>
-                            <Text style={styles.optionIcon}>🔒</Text>
-                            <Text style={styles.optionTitle}>Login</Text>
-                        </View>
-                    </TouchableOpacity>
-                </View>
-            </View>
+  return (
+    <View style={styles.container}>
+      <View style={styles.selectionContainer}>
+        <View style={styles.selectionContent}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Welcome to Robolink</Text>
+          </View>
+
+          <View style={styles.optionsContainer}>
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={() => handleButton('GamepadInputs')}
+            >
+              <View style={styles.optionContent}>
+                <Text style={styles.optionIcon}>🎮</Text>
+                <Text style={styles.optionTitle}>Physical Gamepad</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={() => handleButton('Virtual Gamepad')}
+            >
+              <View style={styles.optionContent}>
+                <Text style={styles.optionIcon}>📱</Text>
+                <Text style={styles.optionTitle}>Virtual Gamepad</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={() => handleButton('CustomControllerList')}
+            >
+              <View style={styles.optionContent}>
+                <Text style={styles.optionIcon}>⚙️</Text>
+                <Text style={styles.optionTitle}>Your Apps</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {userLoaded && user ? (
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Text style={styles.logoutButtonText}>Log out</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={() => handleButton('Login')}
+            >
+              <View style={styles.optionContent}>
+                <Text style={styles.optionIcon}>🔒</Text>
+                <Text style={styles.optionTitle}>Login</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
-    );
+      </View>
+    </View>
+  );
 };
 
 export default HomeScreen;

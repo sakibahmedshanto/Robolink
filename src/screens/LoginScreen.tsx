@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -9,10 +9,12 @@ import {
     Platform,
     ScrollView,
     Dimensions,
+    Alert,
 } from 'react-native';
 import { StyleSheet } from 'react-native';
-import { useBackHandler } from '@react-native-community/hooks';
-import { Button } from 'react-native';
+import { serverUrl } from '../const/const';
+import { storeToken } from '../services/Storage';
+import { useUser } from '../atoms/user';
 
 interface LoginScreenProps {
     onLoginSuccess: () => void;
@@ -22,18 +24,47 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [user, setUser] = useUser();
     const navigation = useNavigation<any>();
 
     const { height } = Dimensions.get('window');
 
     const handleLogin = async () => {
         setIsLoading(true);
-        // Completely dummy login - just simulate loading and go to next screen
-        setTimeout(() => {
-            setIsLoading(false);
-            onLoginSuccess();
-        }, 1000);
+        const url = `${serverUrl}/api/auth/login`; // Replace with your actual server URL
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: email,
+                password: password,
+            }),
+        };
 
+        try {
+            const response = await fetch(url, options);
+            const data = await response.json();
+
+            if (response.ok) {
+                console.log('Login successful:', data);
+                // Handle the successful login response, e.g., save the token
+                await storeToken(data.acces_token);
+                setUser(data.user); // Update user state
+                // and navigate to the next screen.
+                if (onLoginSuccess) onLoginSuccess();
+                navigation.navigate('CustomControllerList');
+            } else {
+                console.error('Login failed:', data.message);
+                Alert.alert('Login Failed', data.message || 'An error occurred.');
+            }
+        } catch (error) {
+            console.error('Network or server error:', error);
+            Alert.alert('Error', 'Could not connect to the server. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
     
     return (
@@ -47,7 +78,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                         flexGrow: 1,
                         justifyContent: 'center',
                         alignItems: 'center',
-                        paddingTop: 48, // Add top padding
+                        paddingTop: 48,
                         paddingBottom: 24,
                     }}
                     showsVerticalScrollIndicator={false}
@@ -109,12 +140,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                     </View>
                     <View style={{ height: height * 0.1 }}></View>
                     <View>
-                      <TouchableOpacity
-                        style={{ paddingHorizontal: 20, paddingVertical: 10, maxWidth: 280, alignItems: 'center', backgroundColor: '#2c2c2cff', borderRadius: 5 }}
-                        onPress={() => navigation.navigate('Home')}
-                      >
-                        <Text style={{ color: "white" }}>Go to Home</Text>
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                            style={{ paddingHorizontal: 20, paddingVertical: 10, maxWidth: 280, alignItems: 'center', backgroundColor: '#2c2c2cff', borderRadius: 5 }}
+                            onPress={() => navigation.navigate('Home')}
+                        >
+                            <Text style={{ color: "white" }}>Go to Home</Text>
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -123,7 +154,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 };
 
 export default LoginScreen;
-
 
 const authStyles = StyleSheet.create({
   // Common Container Styles
