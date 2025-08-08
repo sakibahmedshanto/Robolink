@@ -78,9 +78,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.robolink"
+    namespace "com.ahmedapps.robolink"
     defaultConfig {
-        applicationId "com.robolink"
+        applicationId "com.ahmedapps.robolink"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -88,10 +88,12 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file(RELEASE_UPLOAD_STORE_FILE)
-            storePassword RELEASE_UPLOAD_STORE_PASSWORD
-            keyAlias RELEASE_UPLOAD_KEY_ALIAS
-            keyPassword RELEASE_UPLOAD_KEY_PASSWORD
+            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+                storeFile file(MYAPP_UPLOAD_STORE_FILE)
+                storePassword MYAPP_UPLOAD_STORE_PASSWORD
+                keyAlias MYAPP_UPLOAD_KEY_ALIAS
+                keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+            }
         }
         debug {
             storeFile file('debug.keystore')
@@ -107,7 +109,7 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }

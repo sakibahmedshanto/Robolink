@@ -16,9 +16,9 @@ interface CanvasProps {
   onEditButton: (index: number) => void;
   onRemoveButton: (id: string) => void;
   onSliderValueChange: (id: string, value: number) => void;
-  onButtonPress?: (buttonId: string, pressed: boolean) => void;
+  onButtonPress?: (mapName: string, mapValue: number, pressed: boolean) => void;
   onJoystickMove?: (joystickId: string, x: number, y: number) => void;
-  onSliderChange?: (sliderId: string, value: number) => void;
+  onSliderChange?: (mapName: string, mapValue: number, sliderValue: number) => void;
 }
 
 const Canvas: React.FC<CanvasProps> = ({

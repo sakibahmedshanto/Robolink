@@ -1,4 +1,4 @@
-package com.robolink
+package com.ahmedapps.robolink
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

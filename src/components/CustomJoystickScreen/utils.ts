@@ -4,11 +4,11 @@
  */
 
 import { JoystickButton, ButtonConfig } from './types';
-import { DEFAULT_BUTTON_CONFIG } from './constants';
+import { DEFAULT_BUTTON_CONFIG, ALL_MAP_OPTIONS } from './constants';
 import { getSafeDefaultPosition, constrainToScreenBounds } from './screenBounds';
 
 /**
- * Creates a default layout with joystick and action buttons
+ * Creates a default layout with basic buttons
  */
 export const createDefaultLayout = (): JoystickButton[] => {
   const defaultPosition = getSafeDefaultPosition(60);
@@ -16,33 +16,25 @@ export const createDefaultLayout = (): JoystickButton[] => {
   return [
     {
       id: '1',
-      type: 'joystick',
-      label: 'Movement',
-      x: defaultPosition.x - 200,
-      y: defaultPosition.y + 100,
-      size: 80,
+      type: 'direction',
+      label: 'Forward',
+      x: defaultPosition.x - 100,
+      y: defaultPosition.y,
+      size: 60,
       color: '#2563eb',
-      config: { sensitivity: 50 }
+      mapName: 'forward',
+      mapValue: 100
     },
     {
       id: '2',
       type: 'action',
       label: 'Fire',
-      x: defaultPosition.x + 200,
-      y: defaultPosition.y + 100,
+      x: defaultPosition.x + 100,
+      y: defaultPosition.y,
       size: 60,
       color: '#dc2626',
-      config: { action: 'fire' }
-    },
-    {
-      id: '3',
-      type: 'toggle',
-      label: 'Lights',
-      x: defaultPosition.x + 200,
-      y: defaultPosition.y - 100,
-      size: 50,
-      color: '#f59e0b',
-      config: { action: 'lights' }
+      mapName: 'fire',
+      mapValue: 100
     },
   ];
 };
@@ -51,7 +43,7 @@ export const createDefaultLayout = (): JoystickButton[] => {
  * Creates a new button with default positioning
  */
 export const createNewButton = (
-  type: string,
+  type: 'direction' | 'action' | 'slider',
   label: string,
   config: ButtonConfig
 ): JoystickButton => {
@@ -65,12 +57,8 @@ export const createNewButton = (
     y: parseFloat(safePosition.y.toFixed(2)),
     size: config.size,
     color: config.color,
-    config: {
-      direction: config.direction,
-      action: config.action,
-      sensitivity: config.sensitivity,
-      customCommand: config.customCommand,
-    },
+    mapName: config.mapName,
+    mapValue: config.mapValue,
   };
 };
 
@@ -103,7 +91,7 @@ export const updateButtonConfig = (
   layout: JoystickButton[],
   buttonIndex: number,
   label: string,
-  type: string,
+  type: 'direction' | 'action' | 'slider',
   config: ButtonConfig
 ): JoystickButton[] => {
   return layout.map((item, index) => {
@@ -114,12 +102,8 @@ export const updateButtonConfig = (
         type,
         size: config.size,
         color: config.color,
-        config: {
-          direction: config.direction,
-          action: config.action,
-          sensitivity: config.sensitivity,
-          customCommand: config.customCommand,
-        },
+        mapName: config.mapName,
+        mapValue: config.mapValue,
       };
     }
     return item;
@@ -136,7 +120,7 @@ export const updateSliderValue = (
 ): JoystickButton[] => {
   return layout.map(layoutItem =>
     layoutItem.id === buttonId
-      ? { ...layoutItem, config: { ...layoutItem.config, sensitivity: value } }
+      ? { ...layoutItem, mapValue: Math.round(value) } // Update mapValue for sliders
       : layoutItem
   );
 };
@@ -156,11 +140,25 @@ export const removeButton = (
  */
 export const getButtonConfig = (button: JoystickButton): ButtonConfig => {
   return {
-    direction: button.config?.direction || DEFAULT_BUTTON_CONFIG.direction,
-    action: button.config?.action || DEFAULT_BUTTON_CONFIG.action,
+    mapName: button.mapName || getDefaultMapName(button.type),
+    mapValue: button.mapValue || DEFAULT_BUTTON_CONFIG.mapValue,
     size: button.size || DEFAULT_BUTTON_CONFIG.size,
     color: button.color || DEFAULT_BUTTON_CONFIG.color,
-    sensitivity: button.config?.sensitivity || DEFAULT_BUTTON_CONFIG.sensitivity,
-    customCommand: button.config?.customCommand || DEFAULT_BUTTON_CONFIG.customCommand,
   };
+};
+
+/**
+ * Gets default map name for button type
+ */
+export const getDefaultMapName = (type: 'direction' | 'action' | 'slider'): string => {
+  switch (type) {
+    case 'direction':
+      return 'forward_backward';
+    case 'action':
+      return 'fire';
+    case 'slider':
+      return 'speed';
+    default:
+      return 'unknown';
+  }
 };

@@ -16,9 +16,14 @@ interface HeaderProps {
     onResetToGamepad?: () => void;
     onShowInstructions?: () => void;
     onSaveLayout?: () => void;
+    onShowHelp?: () => void; // Add help button handler
     savedLayouts?: SavedLayout[];
     onLoadLayout?: (layout: SavedLayout) => void;
     onDeleteLayout?: (layoutId: string) => void;
+    // Data transmission props
+    buttonStates?: { [key: string]: number };
+    joystickData?: { [key: string]: number };
+    formatMessage?: (data: any) => string;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -29,12 +34,16 @@ const Header: React.FC<HeaderProps> = ({
     onResetToGamepad,
     onShowInstructions,
     onSaveLayout,
+    onShowHelp, // Add help handler
     savedLayouts = [],
     onLoadLayout,
-    onDeleteLayout
+    onDeleteLayout,
+    // Data transmission props
+    buttonStates = {},
+    joystickData = {},
+    formatMessage
 }) => {
     const [showLayoutDropdown, setShowLayoutDropdown] = useState(false);
-
     return (
         <View style={styles.header}>
             <View style={styles.leftSection}>
@@ -45,6 +54,15 @@ const Header: React.FC<HeaderProps> = ({
                     <Text style={styles.headerTitle}>{currentLayoutName}</Text>
                     <Text style={styles.dropdownIcon}>▼</Text>
                 </TouchableOpacity>
+
+                {/* Data transmission display - moved to left section */}
+                {formatMessage && (
+                    <View style={styles.dataTransmissionContainer}>
+                        <Text style={styles.dataTransmissionText}>
+                            📡 {formatMessage({ ...buttonStates, ...joystickData })}
+                        </Text>
+                    </View>
+                )}
 
                 {onShowInstructions ? (
                     <TouchableOpacity
@@ -70,7 +88,7 @@ const Header: React.FC<HeaderProps> = ({
                     onPress={onToggleEditMode}
                 >
                     <Text style={styles.headerButtonText}>
-                        {isEditMode ? 'Done' : 'Edit'}
+                        {isEditMode ? 'Save' : 'Edit'}
                     </Text>
                 </TouchableOpacity>
                 {(isEditMode && onSaveLayout) ? (
@@ -78,7 +96,7 @@ const Header: React.FC<HeaderProps> = ({
                         style={[styles.headerButton, styles.saveButton]}
                         onPress={onSaveLayout}
                     >
-                        <Text style={styles.headerButtonText}>Save</Text>
+                        <Text style={styles.headerButtonText}>Save As</Text>
                     </TouchableOpacity>
                 ) : null}
                 <TouchableOpacity
@@ -87,6 +105,14 @@ const Header: React.FC<HeaderProps> = ({
                 >
                     <Text style={styles.headerButtonText}>Add</Text>
                 </TouchableOpacity>
+                {onShowHelp ? (
+                    <TouchableOpacity
+                        style={[styles.headerButton, styles.helpHeaderButton]}
+                        onPress={onShowHelp}
+                    >
+                        <Text style={styles.headerButtonText}>Help</Text>
+                    </TouchableOpacity>
+                ) : null}
                 <HeaderRightButtons />
             </View>
 
@@ -144,73 +170,71 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        backgroundColor: '#2a2a2a',
-        borderBottomWidth: 1,
-        borderBottomColor: '#444444',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        backgroundColor: '#D72638', // Elegant red background
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#ffffff1a',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowOpacity: 0.25,
+        shadowRadius: 3,
+        elevation: 4,
     },
     leftSection: {
         flexDirection: 'row',
         alignItems: 'center',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#ffffff',
+        flex: 1,
+    }, headerTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#fff',
+        letterSpacing: 0.5,
     },
     helpButton: {
-        backgroundColor: '#FFD700',
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        backgroundColor: '#ffffff20',
+        width: 28,
+        height: 28,
+        borderRadius: 4,
         justifyContent: 'center',
         alignItems: 'center',
-        marginLeft: 12,
+        marginLeft: 8,
     }, helpButtonText: {
-        color: '#000000',
+        color: '#fff',
         fontSize: 14,
         fontWeight: 'bold',
     },
     headerControls: {
         flexDirection: 'row',
-        gap: 8,
+        gap: 4,
+        alignItems: 'center',
     },
     headerButton: {
-        backgroundColor: '#4a4a4a',
-        paddingHorizontal: 12,
+        backgroundColor: '#ffffff20',
+        paddingHorizontal: 10,
         paddingVertical: 6,
-        borderRadius: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 2,
+        borderRadius: 4,
     }, headerButtonText: {
-        color: '#ffffff',
+        color: '#fff',
         fontWeight: '600',
-        fontSize: 12,
+        fontSize: 13,
+    }, saveButton: {
+        backgroundColor: '#B91E30', // Darker red for save button contrast
     },
-    saveButton: {
-        backgroundColor: '#16a34a',
+    helpHeaderButton: {
+        backgroundColor: '#2563eb', // Blue color for help button
     },
     layoutDropdownButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
         borderRadius: 4,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    },
-    dropdownIcon: {
-        color: '#ffffff',
+        backgroundColor: '#ffffff20',
+    }, dropdownIcon: {
+        color: '#fff',
         fontSize: 12,
-        marginLeft: 8,
+        marginLeft: 6,
     },
     modalOverlay: {
         flex: 1,
@@ -220,22 +244,19 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     dropdownContainer: {
-        backgroundColor: '#2a2a2a',
+        backgroundColor: '#170F11',
         borderRadius: 8,
         padding: 16,
         maxHeight: 300,
         width: '100%',
         maxWidth: 300,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 5,
+        borderWidth: 1,
+        borderColor: '#ffffff2a',
     },
     dropdownTitle: {
-        color: '#ffffff',
+        color: '#fff',
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: 'bold',
         marginBottom: 12,
         textAlign: 'center',
     },
@@ -244,7 +265,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 4,
         borderBottomWidth: 1,
-        borderBottomColor: '#444444',
+        borderBottomColor: '#ffffff2a',
     },
     dropdownItemButton: {
         flex: 1,
@@ -252,11 +273,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
     },
     dropdownItemText: {
-        color: '#ffffff',
+        color: '#fff',
         fontSize: 14,
     },
     deleteButton: {
-        backgroundColor: '#ff4444',
+        backgroundColor: '#D72638',
         width: 24,
         height: 24,
         borderRadius: 12,
@@ -265,15 +286,27 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     deleteButtonText: {
-        color: '#ffffff',
+        color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
     },
     emptyText: {
-        color: '#999999',
+        color: '#ffffff2a',
         fontSize: 14,
         textAlign: 'center',
         paddingVertical: 20,
+    }, dataTransmissionContainer: {
+        backgroundColor: '#ffffff20',
+        padding: 6,
+        marginLeft: 8,
+        borderRadius: 4,
+        maxWidth: 180,
+    },
+    dataTransmissionText: {
+        color: '#fff',
+        fontSize: 9,
+        fontFamily: 'monospace',
+        textAlign: 'left',
     },
 });
 

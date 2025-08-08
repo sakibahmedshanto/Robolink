@@ -5,7 +5,7 @@
  * Fixed to horizontal orientation with gamepad-style layout
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, Alert, StatusBar, Platform, Text } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -14,6 +14,7 @@ import Header from '../components/CustomJoystickScreen/Header';
 import Canvas from '../components/CustomJoystickScreen/Canvas';
 import ButtonConfigModal from '../components/CustomJoystickScreen/ButtonConfigModal';
 import SaveLayoutModal from '../components/CustomJoystickScreen/SaveLayoutModal';
+import HelpModal from '../components/CustomJoystickScreen/HelpModal';
 
 // Add GlobalKeyEvent import for physical gamepad input handling
 import { GlobalKeyEvent } from '../specs';
@@ -52,19 +53,18 @@ const CustomJoystickScreen: React.FC = () => {
     handleSliderChange,
     formatMessage,
   } = useCustomJoystickData();
-
   // State management
   const [layout, setLayout] = useState<JoystickButton[]>([]);
-  const [newType, setNewType] = useState<string>('direction');
+  const [newType, setNewType] = useState<'direction' | 'action' | 'slider'>('direction');
   const [newLabel, setNewLabel] = useState<string>('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>([]);
   const [currentLayoutName, setCurrentLayoutName] = useState<string>('Gamepad');
-  const [isEditMode, setIsEditMode] = useState<boolean>(false);
-  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false); const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
   const [saveLayoutName, setSaveLayoutName] = useState<string>('');
+  const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
 
   // Button configuration state
   const [buttonConfig, setButtonConfig] = useState<ButtonConfig>(DEFAULT_BUTTON_CONFIG);
@@ -76,7 +76,7 @@ const CustomJoystickScreen: React.FC = () => {
   // Real-time input handling - no buffering, immediate response
   const lastInputValueRef = useRef<{ [key: string]: any }>({});
   const lastAnalogSendTimeRef = useRef<{ [key: string]: number }>({});
-  
+
   const ANALOG_SEND_INTERVAL = 50; // Only limit analog inputs to 20fps
   const BUTTON_DEAD_ZONE = 0.1; // Threshold for analog inputs to be considered "pressed"
 
@@ -190,11 +190,10 @@ const CustomJoystickScreen: React.FC = () => {
       ]
     );
   };
-
   /**
    * Adds a new button to the layout
    */
-  const handleAddButton = () => {
+  const handleAddButton = useCallback(() => {
     if (!newLabel.trim()) {
       Alert.alert('Error', 'Please enter a button label');
       return;
@@ -209,7 +208,7 @@ const CustomJoystickScreen: React.FC = () => {
 
     // Save after a short delay to ensure state is updated
     setTimeout(() => handleSaveCurrentLayout(), 100);
-  };
+  }, [newLabel, newType, buttonConfig, layout, handleSaveCurrentLayout]);
 
   /**
    * Removes a button from the layout
@@ -253,11 +252,10 @@ const CustomJoystickScreen: React.FC = () => {
     setButtonConfig(getButtonConfig(button));
     setShowEditModal(true);
   };
-
   /**
    * Updates a button configuration
    */
-  const handleUpdateButton = () => {
+  const handleUpdateButton = useCallback(() => {
     if (!newLabel.trim()) {
       Alert.alert('Error', 'Please enter a button label');
       return;
@@ -271,7 +269,7 @@ const CustomJoystickScreen: React.FC = () => {
     setEditingIndex(null);
     setNewLabel('');
     handleSaveCurrentLayout();
-  };
+  }, [newLabel, editingIndex, layout, newType, buttonConfig, handleSaveCurrentLayout]);
 
   /**
    * Updates slider value for a button
@@ -303,24 +301,30 @@ const CustomJoystickScreen: React.FC = () => {
     );
   };
 
-
-  const handleCancelModal = () => {
+  const handleCancelModal = useCallback(() => {
     setShowAddModal(false);
     setShowEditModal(false);
     setNewLabel('');
     setButtonConfig(DEFAULT_BUTTON_CONFIG);
-  };
+  }, []);
 
   const handleSaveLayoutModal = (name: string) => {
     handleSaveLayoutWithName(name);
     setShowSaveModal(false);
     setSaveLayoutName('');
   };
-
   const handleCancelSaveModal = () => {
     setShowSaveModal(false);
     setSaveLayoutName('');
-  };  /**
+  };
+
+  const handleShowHelp = () => {
+    setShowHelpModal(true);
+  };
+
+  const handleCloseHelp = () => {
+    setShowHelpModal(false);
+  };/**
    * Real-time input handler - no buffering, immediate response for buttons
    * Only rate-limits analog inputs to prevent excessive data transmission
    */
@@ -336,36 +340,34 @@ const CustomJoystickScreen: React.FC = () => {
 
       // Detect if this is a button input (numeric keys are buttons)
       const isButton = key.match(/^\d+$/);
-      
+
       if (isButton) {
         // BUTTONS: Send immediately on any change (press or release)
         if (newValue !== lastValue) {
           updates[key] = newValue;
           lastInputValueRef.current[key] = newValue;
           hasButtonChanges = true;
-          console.log(`🎮 [CUSTOM REALTIME] Button ${key}: ${lastValue} → ${newValue}`);
-          
-          // Immediately trigger button action
-          handleButtonPress(`physical_btn_${key}`, newValue === 1);
+          console.log(`🎮 [CUSTOM REALTIME] Button ${key}: ${lastValue} → ${newValue}`);          // Immediately trigger button action
+          handleButtonPress(`physical_btn_${key}`, 100, newValue === 1);
         }
       } else {
         // ANALOG INPUTS: Rate limit but still responsive
         const lastSendTime = lastAnalogSendTimeRef.current[key] || 0;
         const timeSinceLastSend = currentTime - lastSendTime;
-        
+
         // Send if: significant change OR enough time has passed
         const significantChange = Math.abs((lastValue || 0) - newValue) > BUTTON_DEAD_ZONE;
         const timeToSend = timeSinceLastSend >= ANALOG_SEND_INTERVAL;
-        
+
         if (significantChange || timeToSend) {
           updates[key] = newValue;
           lastInputValueRef.current[key] = newValue;
           lastAnalogSendTimeRef.current[key] = currentTime;
           hasAnalogChanges = true;
-          
+
           // Immediately trigger analog action
           handleJoystickMove(`physical_${key}`, newValue / 1000, 0); // Scale back from -1000/1000 to -1/1
-          
+
           if (significantChange) {
             console.log(`🕹️ [CUSTOM REALTIME] Analog ${key}: ${lastValue} → ${newValue} (significant change)`);
           }
@@ -376,13 +378,13 @@ const CustomJoystickScreen: React.FC = () => {
     // Update display state immediately if we have any changes
     if (hasButtonChanges || hasAnalogChanges) {
       setGamepadInputs(prev => ({ ...prev, ...updates }));
-      
+
       // Update last input indicator for visual feedback
       const activeInputs = Object.keys(updates).filter(key => updates[key] !== 0);
       if (activeInputs.length > 0) {
         setLastPhysicalInput(`Physical Input: ${activeInputs.join(', ')}`);
       }
-      
+
       if (hasButtonChanges) {
         console.log('⚡ [CUSTOM REALTIME] Button changes applied immediately');
       }
@@ -412,7 +414,7 @@ const CustomJoystickScreen: React.FC = () => {
       if (value !== undefined && value !== 0) { // Only send non-zero values
         // For buttons (0 or 1), treat as button press
         if (key.match(/^\d+$/)) { // Button keycodes are numeric strings
-          handleButtonPress(`physical_btn_${key}`, value === 1);
+          handleButtonPress(`physical_btn_${key}`, 100, value === 1);
         } else {
           // For analog inputs (joysticks, triggers), pass directly
           handleJoystickMove(`physical_${key}`, value / 1000, 0); // Scale back from -1000/1000 to -1/1
@@ -462,21 +464,31 @@ const CustomJoystickScreen: React.FC = () => {
     }
     */
   };
-
+  const handleModalSave = useCallback(() => {
+    if (showEditModal) {
+      handleUpdateButton();
+    } else {
+      handleAddButton();
+    }
+  }, [showEditModal, handleUpdateButton, handleAddButton]);
 
   return (
     <View style={styles.container}>
       <Header
-        currentLayoutName={currentLayoutName}
-        isEditMode={isEditMode}
-        onToggleEditMode={() => setIsEditMode(!isEditMode)}
-        onAddButton={() => setShowAddModal(true)}
-        onResetToGamepad={handleResetToGamepad}
-        onSaveLayout={() => setShowSaveModal(true)}
-        savedLayouts={savedLayouts}
-        onLoadLayout={handleLoadLayout}
-        onDeleteLayout={handleDeleteLayout}
-      />
+      currentLayoutName={currentLayoutName}
+      isEditMode={isEditMode}
+      onToggleEditMode={() => setIsEditMode(!isEditMode)}
+      onAddButton={() => setShowAddModal(true)}
+      onResetToGamepad={handleResetToGamepad}
+      onSaveLayout={() => setShowSaveModal(true)}
+      onShowHelp={handleShowHelp}
+      savedLayouts={savedLayouts}
+      onLoadLayout={handleLoadLayout}
+      onDeleteLayout={handleDeleteLayout}
+      buttonStates={buttonStates}
+      joystickData={joystickData}
+      formatMessage={formatMessage}
+    />
       <Canvas
         layout={layout}
         isEditMode={isEditMode}
@@ -488,7 +500,6 @@ const CustomJoystickScreen: React.FC = () => {
         onJoystickMove={handleJoystickMove}
         onSliderChange={handleSliderChange}
       />
-
       <ButtonConfigModal
         visible={showAddModal || showEditModal}
         isEditMode={showEditModal}
@@ -498,34 +509,26 @@ const CustomJoystickScreen: React.FC = () => {
         onChangeLabel={setNewLabel}
         onChangeButtonType={setNewType}
         onChangeConfig={setButtonConfig}
-        onSave={showEditModal ? handleUpdateButton : handleAddButton}
+        onSave={handleModalSave}
         onCancel={handleCancelModal}
       />
-
       <SaveLayoutModal
         visible={showSaveModal}
         layoutName={saveLayoutName}
         onChangeLayoutName={setSaveLayoutName}
         onSave={handleSaveLayoutModal}
-        onCancel={handleCancelSaveModal}
-      />
+        onCancel={handleCancelSaveModal} />
 
+      <HelpModal
+        visible={showHelpModal}
+        onClose={handleCloseHelp}
+      />
       {/* Display physical input indicator */}
-      {lastPhysicalInput ? (
+      {/* {lastPhysicalInput ? (
         <View style={styles.physicalInputContainer}>
           <Text style={styles.physicalInputText}>{lastPhysicalInput}</Text>
         </View>
-      ) : null}
-
-      {/* Display current data transmission */}
-      <View style={styles.dataTransmissionContainer}>
-        <Text style={styles.dataTransmissionText}>
-          📡 Data: {formatMessage({ ...buttonStates, ...joystickData })}
-        </Text>
-        <Text style={styles.dataTransmissionText}>
-          🎮 Buttons: {Object.keys(buttonStates).length} | 🕹️ Analog: {Object.keys(joystickData).length}
-        </Text>
-      </View>
+      ) : null} */}
     </View>
   );
 };
@@ -535,7 +538,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a0a', // Very dark background to match gamepad image
     // Remove paddingTop since we're handling immersive mode
-  },  physicalInputContainer: {
+  }, physicalInputContainer: {
     position: 'absolute',
     bottom: 20,
     left: 20,
@@ -549,22 +552,6 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 12,
     fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  dataTransmissionContainer: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 10,
-    borderRadius: 5,
-    zIndex: 1000,
-  },
-  dataTransmissionText: {
-    color: '#fff',
-    fontSize: 10,
-    fontFamily: 'monospace',
     textAlign: 'center',
   },
 });

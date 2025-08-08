@@ -7,17 +7,19 @@ import { ButtonTypeOption } from './types';
 export const BUTTON_TYPES: ButtonTypeOption[] = [
   { type: 'direction', label: 'Direction', icon: '↑' },
   { type: 'action', label: 'Action', icon: '●' },
-  { type: 'toggle', label: 'Toggle', icon: '⚡' },
   { type: 'slider', label: 'Slider', icon: '═' },
-  { type: 'joystick', label: 'Joystick', icon: '🕹️' },
 ];
 
-export const DIRECTION_OPTIONS: string[] = [
-  'up', 'down', 'left', 'right', 'forward', 'backward', 'rotate_left', 'rotate_right'
-];
-
-export const ACTION_OPTIONS: string[] = [
-  'fire', 'grab', 'release', 'horn', 'lights', 'camera', 'custom'
+// Unified map options - all available map names
+export const ALL_MAP_OPTIONS: string[] = [
+  // Movement
+  'forward', 'backward', 'left', 'right', 'up', 'down', 'rotate_left', 'rotate_right',
+  // Actions
+  'fire', 'grab', 'release', 'horn', 'lights', 'camera', 'brake', 'turbo',
+  // Controls
+  'speed', 'steering', 'throttle', 'brake_intensity', 'volume', 'brightness',
+  // Custom placeholder
+  'custom'
 ];
 
 export const COLOR_OPTIONS: string[] = [
@@ -25,10 +27,8 @@ export const COLOR_OPTIONS: string[] = [
 ];
 
 export const DEFAULT_BUTTON_CONFIG = {
-  direction: 'up',
-  action: 'fire',
-  size: 60,
+  mapName: 'forward',
+  mapValue: 100,
+  size: 50,
   color: '#2563eb',
-  sensitivity: 50,
-  customCommand: '',
 };
