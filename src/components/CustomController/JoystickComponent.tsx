@@ -19,7 +19,7 @@ const JoystickComponent: React.FC<{
   
   const handleMove = (data:IReactNativeJoystickEvent) => {
     // Pass the x, y coordinates to the parent component
-    onValueChange(Math.round(data.position.x || 0), Math.round(data.position.y || 0));
+    onValueChange(Math.round(data.position.x*10 || 0), Math.round(data.position.y*10 || 0));
   };
 
   const handleStop = () => {

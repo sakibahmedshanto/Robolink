@@ -12,8 +12,9 @@ import ToggleComponent, { ToggleWidget } from './ToggleButtonComponent';
 import ButtonComponent, { ButtonWidget } from './ButtonComponent';
 import HSliderComponent, { HSliderWidget } from './HSliderComponent';
 import { Widget, WidgetType } from '../../types/widget';
-
-
+import LEDComponent, { LEDWidget } from './LEDComponent';
+import LCDComponent, { LCDWidget } from './LCDComponent';
+import TerminalComponent, { TerminalWidget } from './TerminalComponent';
 
 interface ControllerLayout {
   templateId: string;
@@ -26,13 +27,19 @@ interface ControllerProps {
   onWidgetInteraction?: (widgetId: string, type: string, value: any) => void;
 }
 
-
 // Main Controller Component
-const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteraction }) => {
+const CustomController: React.FC<ControllerProps> = ({
+  layout,
+  onWidgetInteraction,
+}) => {
   // Get the full width and height of the device screen
   const { width: deviceWidth, height: deviceHeight } = Dimensions.get('window');
 
-  const handleWidgetInteraction = (widgetId: string, type: WidgetType, value: any) => {
+  const handleWidgetInteraction = (
+    widgetId: string,
+    type: WidgetType,
+    value: any,
+  ) => {
     onWidgetInteraction?.(widgetId, type, value);
   };
 
@@ -49,7 +56,9 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             widget={widget as JoystickWidget}
             absoluteLeft={absoluteLeft}
             absoluteTop={absoluteTop}
-            onValueChange={(x, y) => handleWidgetInteraction(widget.id, 'JOYSTICK', { x, y })}
+            onValueChange={(x, y) =>
+              handleWidgetInteraction(widget.id, 'JOYSTICK', { x, y })
+            }
           />
         );
 
@@ -74,7 +83,9 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             widget={widget as ToggleWidget}
             absoluteLeft={absoluteLeft}
             absoluteTop={absoluteTop}
-            onToggle={(value) => handleWidgetInteraction(widget.id, 'TOGGLE', value)}
+            onToggle={value =>
+              handleWidgetInteraction(widget.id, 'TOGGLE', value)
+            }
           />
         );
 
@@ -85,7 +96,9 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             widget={widget as HSliderWidget}
             absoluteLeft={absoluteLeft}
             absoluteTop={absoluteTop}
-            onValueChange={(value) => handleWidgetInteraction(widget.id, 'HSLIDER', value)}
+            onValueChange={value =>
+              handleWidgetInteraction(widget.id, 'HSLIDER', value)
+            }
           />
         );
       case 'VSLIDER':
@@ -95,10 +108,38 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
             widget={widget as VSliderWidget}
             absoluteLeft={absoluteLeft}
             absoluteTop={absoluteTop}
-            onValueChange={(value) => handleWidgetInteraction(widget.id, 'VSLIDER', value)}
+            onValueChange={value =>
+              handleWidgetInteraction(widget.id, 'VSLIDER', value)
+            }
           />
         );
-
+      case 'LED':
+        return (
+          <LEDComponent
+            key={widget.id}
+            widget={widget as LEDWidget}
+            absoluteLeft={absoluteLeft}
+            absoluteTop={absoluteTop}
+          />
+        );
+      case 'LCD':
+        return (
+          <LCDComponent
+            key={widget.id}
+            widget={widget as LCDWidget}
+            absoluteLeft={absoluteLeft}
+            absoluteTop={absoluteTop}
+          />
+        );
+      case 'TERMINAL':
+        return (
+          <TerminalComponent
+            key={widget.id}
+            widget={widget as TerminalWidget}
+            absoluteLeft={absoluteLeft}
+            absoluteTop={absoluteTop}
+          />
+        );
       default:
         return null;
     }
@@ -106,31 +147,31 @@ const CustomController: React.FC<ControllerProps> = ({ layout, onWidgetInteracti
 
   return (
     // GestureHandlerRootView should wrap the entire application
-    <View style={{ flexGrow: 1,paddingBottom: 20, backgroundColor: 'white' }}>
+    <View style={{ flexGrow: 1, paddingBottom: 20, backgroundColor: 'white' }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: '#F5F5F5',
+          // The main container now takes up the full device width and height
+          width: deviceWidth,
+          height: deviceHeight - 10,
+
+          position: 'relative', // Important for absolute positioning of children
+        }}
+      >
+        {/* Controller Area - widgets are rendered here */}
+        {/* This inner view acts as the 'canvas' and will stretch to fill the device dimensions */}
         <View
           style={{
             flex: 1,
-            backgroundColor: '#F5F5F5',
-            // The main container now takes up the full device width and height
-            width: deviceWidth,
-            height: deviceHeight -10,
-            
+            backgroundColor: '#FFFFFF', // White background for the canvas itself
             position: 'relative', // Important for absolute positioning of children
+            overflow: 'hidden', // Clip content outside bounds
           }}
         >
-          {/* Controller Area - widgets are rendered here */}
-          {/* This inner view acts as the 'canvas' and will stretch to fill the device dimensions */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: '#FFFFFF', // White background for the canvas itself
-              position: 'relative', // Important for absolute positioning of children
-              overflow: 'hidden', // Clip content outside bounds
-            }}
-          >
-            {layout.widgets.map(renderWidget)}
-          </View>
+          {layout.widgets.map(renderWidget)}
         </View>
+      </View>
     </View>
   );
 };
