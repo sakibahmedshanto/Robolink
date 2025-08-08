@@ -67,7 +67,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.optionButton}
               onPress={() => {}}
             >
@@ -75,7 +75,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
                 <Text style={styles.optionIcon}>🖥️</Text>
                 <Text style={styles.optionTitle}>Create IoT Apps</Text>
               </View>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <TouchableOpacity
               style={styles.optionButton}
