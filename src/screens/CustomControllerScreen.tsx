@@ -49,6 +49,13 @@ const CustomControllerScreen = ({ route }:{
   }, [route.params.layout])
 
   useEffect(() => {
+    if(!udpSocket) return;
+    udpSocket.on('message', (msg, rinfo) => {
+      console.log(`UDP message received: ${msg} from ${rinfo.address}:${rinfo.port}`);
+    });
+  }, [udpSocket]);
+
+  useEffect(() => {
     // Lock the screen to landscape when the component mounts
     Orientation.lockToLandscape();
     setTimeout(() => setMounted(true), 1000);
@@ -90,7 +97,7 @@ const CustomControllerScreen = ({ route }:{
         if(udpIntervalRef.current) clearInterval(udpIntervalRef.current);
         return;
       }
-      
+  
       const inputs = inputsRef.current;
       const result = getMessage(inputs);
       if(udpSocket) broadcastUdpData(udpSocket, result, udpStatus.port);
