@@ -23,6 +23,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import { BackHandler } from 'react-native';
 import { primaryColor } from './src/const/theme';
 import CustomControllerListScreen from './src/screens/CustomControllerListScreen';
+import WebViewStreamPlayer from './src/components/WebViewStreamPlayer';
 
 
 const RootStack = createNativeStackNavigator({
@@ -71,6 +72,13 @@ const RootStack = createNativeStackNavigator({
       screen: CustomControllerScreen,
       options: {
         headerShown: false,
+      },
+    },
+    WebViewStreamPlayer: {
+      screen: WebViewStreamPlayer,
+      options: {
+        title: 'IoT Stream',
+        headerShown: true,
       },
     },
   },

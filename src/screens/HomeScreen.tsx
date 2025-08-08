@@ -69,7 +69,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
             <TouchableOpacity
               style={styles.optionButton}
-              onPress={() => {}}
+              onPress={() => handleButton('WebViewStreamPlayer')}
             >
               <View style={styles.optionContent}>
                 <Text style={styles.optionIcon}>🖥️</Text>

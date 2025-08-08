@@ -11,21 +11,20 @@ import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.ReactPackage
 
 import com.robolinkbd.globalkeyevent.GlobalKeyEventPackage
-import com.robolinkbd.bluetoothserial.BluetoothSerialPackage;
-import com.robolinkbd.network.NetworkPackage;
-
+import com.robolinkbd.bluetoothserial.BluetoothSerialPackage
+import com.robolinkbd.network.NetworkPackage
 
 class MainApplication : Application(), ReactApplication {
 
   override val reactNativeHost: ReactNativeHost =
-      object : DefaultReactNativeHost(this) {          override fun getPackages(): List<ReactPackage> =
-              PackageList(this).packages.apply {
-              // Packages that cannot be autolinked yet can be added manually here
-                  add(GlobalKeyEventPackage())
-                  add(BluetoothSerialPackage())
-                  add(NetworkPackage())
-              }
-
+      object : DefaultReactNativeHost(this) {
+        override fun getPackages(): List<ReactPackage> =
+            PackageList(this).packages.apply {
+                // Packages that cannot be autolinked yet can be added manually here
+                add(GlobalKeyEventPackage())
+                add(BluetoothSerialPackage())
+                add(NetworkPackage())
+            }
 
         override fun getJSMainModuleName(): String = "index"
 
